@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_for_you"
+        android:enabled="true"
+        android:icon="@drawable/ic_baseline_star_border_24"
+        android:title="For You" />
+    <item
+        android:id="@+id/nav_song"
+        android:enabled="true"
+        android:icon="@drawable/ic_baseline_music_note_24"
+        android:title="Song" />
+    <item
+        android:id="@+id/nav_playlist"
+        android:enabled="true"
+        android:icon="@drawable/ic_baseline_queue_music_24"
+        android:title="Playlist" />
+</menu>
