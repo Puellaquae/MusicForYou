@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import puelloc.musicplayer.databinding.FragmentPlaylistBinding
 
 class PlaylistFragment : Fragment() {
-    private var _binding: FragmentPlaylistBinding? = null;
+    private var _binding: FragmentPlaylistBinding? = null
     private var binding: FragmentPlaylistBinding
         get() = _binding!!
         set(value) {

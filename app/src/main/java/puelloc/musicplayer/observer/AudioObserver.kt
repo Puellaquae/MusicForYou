@@ -3,12 +3,14 @@ package puelloc.musicplayer.observer
 import android.content.Context
 import android.database.ContentObserver
 import android.os.Handler
-import android.provider.MediaStore
+import android.util.Log
 
-class AudioObserver(handler: Handler) : ContentObserver(handler) {
-    fun register(context: Context) {
-        context.contentResolver.registerContentObserver(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, this)
+class AudioObserver(private val context: Context, private val handler: Handler) :
+    ContentObserver(handler) {
+
+    override fun onChange(selfChange: Boolean) {
+        super.onChange(selfChange)
+        Log.d("AudioObserver", "onChange $selfChange")
+        handler.obtainMessage()
     }
-
-
 }
