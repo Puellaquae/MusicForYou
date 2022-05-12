@@ -22,6 +22,9 @@ import androidx.media.session.MediaButtonReceiver
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.navigation.NavigationBarView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ActivityMainBinding
 import puelloc.musicplayer.observer.AudioObserver
@@ -29,9 +32,14 @@ import puelloc.musicplayer.service.MediaPlaybackService
 import puelloc.musicplayer.ui.fragment.ForYouFragment
 import puelloc.musicplayer.ui.fragment.SongFragment
 import puelloc.musicplayer.ui.fragment.PlaylistFragment
+import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
 
-val channelId = ""
+private val FRAGMENTS = listOf(
+    lazy { ForYouFragment() } to R.id.nav_for_you,
+    lazy { SongFragment() } to R.id.nav_song,
+    lazy { PlaylistFragment() } to R.id.nav_playlist,
+)
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -39,6 +47,7 @@ class MainActivity : AppCompatActivity() {
 
     private val connectionCallbacks = object : MediaBrowserCompat.ConnectionCallback() {
         override fun onConnected() {
+            Log.d("$this", "Connected")
             mediaBrowser.sessionToken.also {
                 val mediaController = MediaControllerCompat(this@MainActivity, it)
                 MediaControllerCompat.setMediaController(this@MainActivity, mediaController)
@@ -57,19 +66,6 @@ class MainActivity : AppCompatActivity() {
         fun buildTransportControls() {
             val mediaController = MediaControllerCompat.getMediaController(this@MainActivity)
             // Grab the view for the play/pause button
-            binding.playPause.apply {
-                setOnClickListener {
-                    // Since this is a play/pause button, you'll need to test the current state
-                    // and choose the action accordingly
-
-                    val pbState = mediaController.playbackState.state
-                    if (pbState == PlaybackStateCompat.STATE_PLAYING) {
-                        mediaController.transportControls.pause()
-                    } else {
-                        mediaController.transportControls.play()
-                    }
-                }
-            }
 
             // Display the initial state
             val metadata = mediaController.metadata
@@ -82,9 +78,13 @@ class MainActivity : AppCompatActivity() {
 
     private var controllerCallback = object : MediaControllerCompat.Callback() {
 
-        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {}
+        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+            Log.d("controllerCallback@onMetadataChanged", "$metadata")
+        }
 
-        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {}
+        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
+            Log.d("controllerCallback@onPlaybackStateChanged", "$state")
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,7 +95,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val songViewModel: SongViewModel by viewModels()
-        songViewModel.loadSongs()
+        val playlistViewModel: PlaylistViewModel by viewModels()
+
+        MainScope().launch(Dispatchers.IO) {
+            songViewModel.loadSongsSync()
+            playlistViewModel.buildPlaylistByDirSync()
+        }
 
         initView()
 
@@ -129,12 +134,10 @@ class MainActivity : AppCompatActivity() {
                 isUserInputEnabled = false
 
                 adapter = object : FragmentStateAdapter(this@MainActivity) {
-                    override fun getItemCount(): Int = 3
+                    override fun getItemCount(): Int = FRAGMENTS.size
 
                     override fun createFragment(position: Int): Fragment = when (position) {
-                        0 -> ForYouFragment()
-                        1 -> SongFragment()
-                        2 -> PlaylistFragment()
+                        in 0..FRAGMENTS.size -> FRAGMENTS[position].first.value
                         else -> throw RuntimeException()
                     }
                 }
@@ -150,12 +153,13 @@ class MainActivity : AppCompatActivity() {
             bottomNavigation.apply {
                 labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_SELECTED
                 setOnItemSelectedListener {
-                    when (it.itemId) {
-                        R.id.nav_song -> binding.viewPager.setCurrentItem(1, true)
-                        R.id.nav_for_you -> binding.viewPager.setCurrentItem(0, true)
-                        R.id.nav_playlist -> binding.viewPager.setCurrentItem(2, true)
+                    val idx = FRAGMENTS.indexOfFirst { f -> f.second == it.itemId }
+                    if (idx != -1) {
+                        binding.viewPager.setCurrentItem(idx, true)
+                        true
+                    } else {
+                        false
                     }
-                    true
                 }
                 selectedItemId = R.id.nav_song
             }

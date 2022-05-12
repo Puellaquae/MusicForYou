@@ -10,19 +10,19 @@
     android:paddingBottom="8dp">
 
     <com.google.android.material.imageview.ShapeableImageView
-        android:id="@+id/song_cover"
+        android:id="@+id/playlist_cover"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:contentDescription="Cover"
         android:scaleType="centerCrop"
+        android:contentDescription="Cover"
+        app:shapeAppearanceOverlay="@style/RoundedForItemSong"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:shapeAppearanceOverlay="@style/RoundedForItemSong"
         app:srcCompat="@drawable/ic_round_music_note_24" />
 
     <TextView
-        android:id="@+id/song_name"
+        android:id="@+id/playlist_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -30,14 +30,14 @@
         android:fontFamily="sans-serif"
         android:maxLines="1"
         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-        app:layout_constraintBottom_toTopOf="@id/song_artist"
+        app:layout_constraintBottom_toTopOf="@id/playlist_count"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/song_cover"
+        app:layout_constraintStart_toEndOf="@id/playlist_cover"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="@tools:sample/lorem/random" />
 
     <TextView
-        android:id="@+id/song_artist"
+        android:id="@+id/playlist_count"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -45,8 +45,8 @@
         android:maxLines="1"
         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/song_cover"
+        app:layout_constraintStart_toEndOf="@id/playlist_cover"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/song_name"
+        app:layout_constraintTop_toBottomOf="@id/playlist_name"
         tools:text="@tools:sample/lorem/random" />
 </androidx.constraintlayout.widget.ConstraintLayout>

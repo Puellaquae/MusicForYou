@@ -1,13 +1,17 @@
 package puelloc.musicplayer.entity
 
-import android.graphics.Bitmap
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import org.jetbrains.annotations.NotNull
 
+@Entity(indices = [Index("songId")])
 data class Song(
-    val id: String,
+    @NotNull
+    @PrimaryKey val songId: Long,
     val name: String,
     val albumName: String,
     val artistName: String,
     val path: String,
     val duration: Long,
-    var cover: Bitmap? = null
 )

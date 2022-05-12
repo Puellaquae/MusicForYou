@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Music For You</string>
+    <string name="pause">Pause</string>
+    <string name="title_activity_playlist">PlaylistActivity</string>
 </resources>
