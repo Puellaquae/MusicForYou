@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import puelloc.musicplayer.adapter.SongAdapter
 import puelloc.musicplayer.databinding.FragmentSongBinding
+import puelloc.musicplayer.viewmodel.MediaPlayViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
 
@@ -24,6 +25,7 @@ class SongFragment : Fragment() {
         }
     private val songViewModel: SongViewModel by activityViewModels()
     private val playlistViewModel: PlaylistViewModel by activityViewModels()
+    private val mediaPlayViewModel: MediaPlayViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -35,7 +37,9 @@ class SongFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val adapter = SongAdapter()
+        val adapter = SongAdapter {
+            mediaPlayViewModel.singId.value = it.songId
+        }
         binding.musicList.adapter = adapter
         val playlistId = arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, -1) ?: -1
         if (playlistId == -1L) {

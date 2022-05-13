@@ -1,24 +1,22 @@
 package puelloc.musicplayer.ui.activity
 
-import android.app.Application
 import android.content.ComponentName
+import android.content.Context
+import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.provider.MediaStore
+import android.os.RemoteException
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.MediaControllerCompat.*
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
-import androidx.media.session.MediaButtonReceiver
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.navigation.NavigationBarView
@@ -27,13 +25,15 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ActivityMainBinding
-import puelloc.musicplayer.observer.AudioObserver
 import puelloc.musicplayer.service.MediaPlaybackService
+import puelloc.musicplayer.service.MediaServiceHelper
 import puelloc.musicplayer.ui.fragment.ForYouFragment
-import puelloc.musicplayer.ui.fragment.SongFragment
 import puelloc.musicplayer.ui.fragment.PlaylistFragment
+import puelloc.musicplayer.ui.fragment.SongFragment
+import puelloc.musicplayer.viewmodel.MediaPlayViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
+
 
 private val FRAGMENTS = listOf(
     lazy { ForYouFragment() } to R.id.nav_for_you,
@@ -43,48 +43,13 @@ private val FRAGMENTS = listOf(
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private lateinit var mediaBrowser: MediaBrowserCompat
+    private lateinit var mediaServiceHelper: MediaServiceHelper
+    private val songViewModel: SongViewModel by viewModels()
+    private val playlistViewModel: PlaylistViewModel by viewModels()
+    private val mediaPlayViewModel: MediaPlayViewModel by viewModels()
 
-    private val connectionCallbacks = object : MediaBrowserCompat.ConnectionCallback() {
-        override fun onConnected() {
-            Log.d("$this", "Connected")
-            mediaBrowser.sessionToken.also {
-                val mediaController = MediaControllerCompat(this@MainActivity, it)
-                MediaControllerCompat.setMediaController(this@MainActivity, mediaController)
-            }
-            buildTransportControls()
-        }
-
-        override fun onConnectionSuspended() {
-
-        }
-
-        override fun onConnectionFailed() {
-
-        }
-
-        fun buildTransportControls() {
-            val mediaController = MediaControllerCompat.getMediaController(this@MainActivity)
-            // Grab the view for the play/pause button
-
-            // Display the initial state
-            val metadata = mediaController.metadata
-            val pbState = mediaController.playbackState
-
-            // Register a Callback to stay in sync
-            mediaController.registerCallback(controllerCallback)
-        }
-    }
-
-    private var controllerCallback = object : MediaControllerCompat.Callback() {
-
-        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-            Log.d("controllerCallback@onMetadataChanged", "$metadata")
-        }
-
-        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-            Log.d("controllerCallback@onPlaybackStateChanged", "$state")
-        }
+    companion object {
+        private val TAG = MainActivity::class.java.simpleName
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,38 +59,69 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val songViewModel: SongViewModel by viewModels()
-        val playlistViewModel: PlaylistViewModel by viewModels()
-
-        MainScope().launch(Dispatchers.IO) {
-            songViewModel.loadSongsSync()
-            playlistViewModel.buildPlaylistByDirSync()
-        }
-
         initView()
 
-        mediaBrowser = MediaBrowserCompat(
-            this,
-            ComponentName(this, MediaPlaybackService::class.java),
-            connectionCallbacks,
-            null
-        )
+        val requestPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) {
+            if (it) {
+                MainScope().launch(Dispatchers.IO) {
+                    songViewModel.loadSongsSync()
+                    playlistViewModel.buildPlaylistByDirSync()
+                }
+            }
+        }
+
+        val readCallLogPermissionResult =
+            this.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        if (readCallLogPermissionResult != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        } else {
+            MainScope().launch(Dispatchers.IO) {
+                songViewModel.loadSongsSync()
+                playlistViewModel.buildPlaylistByDirSync()
+            }
+        }
+
+        mediaServiceHelper = object : MediaServiceHelper(this) {
+            override fun onConnected(mediaController: MediaControllerCompat) {
+                Log.d(TAG, "onConnected")
+            }
+
+            override fun onChildrenLoaded(
+                parentId: String,
+                children: MutableList<MediaBrowserCompat.MediaItem>
+            ) {
+                Log.d(TAG, "onChildrenLoaded, $parentId, $children")
+            }
+
+            override fun onDisconnected() {
+                Log.d(TAG, "onDisconnected")
+            }
+        }
+        mediaServiceHelper.registerCallback(controllerCallback)
+
+        mediaPlayViewModel.singId.observe(this) {
+            mediaServiceHelper.getTransportControls().play()
+        }
     }
 
     override fun onStart() {
         super.onStart()
-        mediaBrowser.connect()
+        Log.d(TAG, "onStart")
+        mediaServiceHelper.start()
     }
 
     override fun onResume() {
         super.onResume()
+        Log.d(TAG, "onResume")
         volumeControlStream = AudioManager.STREAM_MUSIC
     }
 
     override fun onStop() {
         super.onStop()
-        MediaControllerCompat.getMediaController(this)?.unregisterCallback(controllerCallback)
-        mediaBrowser.disconnect()
+        Log.d(TAG, "onStop")
+        mediaServiceHelper.stop()
     }
 
     private fun initView() {
@@ -163,6 +159,16 @@ class MainActivity : AppCompatActivity() {
                 }
                 selectedItemId = R.id.nav_song
             }
+        }
+    }
+
+    private val controllerCallback = object : MediaControllerCompat.Callback() {
+        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+            Log.d(TAG, "metadata changed, $metadata")
+        }
+
+        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
+            Log.d(TAG, "playback state changed, $state")
         }
     }
 }

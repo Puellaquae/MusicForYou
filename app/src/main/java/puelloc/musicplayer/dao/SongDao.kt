@@ -15,6 +15,9 @@ interface SongDao {
     @Query("SELECT * FROM Song")
     fun getAllSongsSync(): List<Song>
 
+    @Query("SELECT * FROM Song WHERE songId == :songId")
+    fun getSong(songId: Long): Flow<Song>
+
     @Query("DELETE FROM Song")
     fun clearAll()
 

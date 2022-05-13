@@ -12,7 +12,7 @@ import puelloc.musicplayer.databinding.ItemSongBinding
 import puelloc.musicplayer.entity.Song
 import puelloc.musicplayer.glide.audiocover.AudioCover
 
-class SongAdapter :
+class SongAdapter(private val onClick: (song: Song) -> Unit) :
     ListAdapter<Song, SongAdapter.ViewHolder>(object : DiffUtil.ItemCallback<Song>() {
         override fun areItemsTheSame(oldItem: Song, newItem: Song): Boolean =
             oldItem.songId == newItem.songId
@@ -21,10 +21,10 @@ class SongAdapter :
             oldItem.hashCode() == newItem.hashCode()
     }) {
     class ViewHolder(
-        private val itemBind: ItemSongBinding
+        private val itemBind: ItemSongBinding,
+        private val onClick: (song: Song) -> Unit
     ) :
         RecyclerView.ViewHolder(itemBind.root) {
-        private var job: Job? = null
         fun bind(song: Song) {
             itemBind.apply {
                 songName.text = song.name
@@ -35,6 +35,7 @@ class SongAdapter :
                     .placeholder(R.drawable.ic_round_music_note_24)
                     .fallback(R.drawable.ic_round_music_note_24)
                     .into(songCover)
+                root.setOnClickListener { onClick(song) }
             }
         }
     }
@@ -45,7 +46,8 @@ class SongAdapter :
                 LayoutInflater.from(parent.context),
                 parent,
                 false
-            )
+            ),
+            onClick
         )
     }
 

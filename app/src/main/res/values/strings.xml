@@ -2,4 +2,7 @@
     <string name="app_name">Music For You</string>
     <string name="pause">Pause</string>
     <string name="title_activity_playlist">PlaylistActivity</string>
+    <string name="prev">Prev</string>
+    <string name="next">Next</string>
+    <string name="play">Play</string>
 </resources>

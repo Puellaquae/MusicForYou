@@ -9,5 +9,4 @@
     android:clipToPadding="false"
     android:paddingBottom="48dp"
     app:layoutManager="LinearLayoutManager"
-    app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context=".ui.fragment.PlaylistFragment" />

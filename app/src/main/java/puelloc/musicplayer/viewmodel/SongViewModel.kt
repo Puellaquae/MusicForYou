@@ -20,6 +20,8 @@ class SongViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getSongs(): LiveData<List<Song>> = songDao.getAllSongs().asLiveData()
 
+    fun getSong(songId: Long): LiveData<Song> = songDao.getSong(songId).asLiveData()
+
     fun loadSongsSync() {
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
