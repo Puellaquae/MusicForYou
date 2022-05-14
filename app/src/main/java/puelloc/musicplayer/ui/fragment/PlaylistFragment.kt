@@ -1,15 +1,17 @@
 package puelloc.musicplayer.ui.fragment
 
+import android.content.Intent
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import puelloc.musicplayer.App.Companion.PLAYLIST_ID_MESSAGE
 import puelloc.musicplayer.adapter.PlaylistAdapter
 import puelloc.musicplayer.databinding.FragmentPlaylistBinding
+import puelloc.musicplayer.ui.activity.PlaylistActivity
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
-import puelloc.musicplayer.viewmodel.SongViewModel
 
 class PlaylistFragment : Fragment() {
     private var _binding: FragmentPlaylistBinding? = null
@@ -30,7 +32,12 @@ class PlaylistFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val adapter = PlaylistAdapter()
+        val adapter = PlaylistAdapter {
+            val intent = Intent(context, PlaylistActivity::class.java).apply {
+                putExtra(PLAYLIST_ID_MESSAGE, it.playlist.playlistId)
+            }
+            context?.startActivity(intent)
+        }
         binding.playlistList.adapter = adapter
         viewModel.playlistsWithSongs.observe(viewLifecycleOwner) {
             adapter.submitList(it)

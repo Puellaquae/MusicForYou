@@ -1,15 +1,11 @@
 package puelloc.musicplayer.viewmodel
 
 import android.app.Application
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
 import android.provider.MediaStore
 import android.util.Log
-import androidx.lifecycle.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.asLiveData
 import puelloc.musicplayer.db.AppDatabase
 import puelloc.musicplayer.entity.Song
 

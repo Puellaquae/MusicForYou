@@ -1,21 +1,14 @@
 package puelloc.musicplayer.viewmodel
 
 import android.app.Application
-import android.os.Build
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import puelloc.musicplayer.db.AppDatabase
 import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistWithSongs
 import puelloc.musicplayer.entity.Song
-import java.io.File
-import java.util.regex.Pattern
-import kotlin.io.path.Path
 
 class PlaylistViewModel(application: Application) : AndroidViewModel(application) {
     private val appDatabase =

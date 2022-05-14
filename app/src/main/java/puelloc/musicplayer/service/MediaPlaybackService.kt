@@ -11,16 +11,18 @@ import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.media.MediaBrowserServiceCompat
 import androidx.media.session.MediaButtonReceiver
-
-private const val MY_MEDIA_ROOT_ID = "media_root_id"
+import puelloc.musicplayer.ui.activity.MainActivity
+import puelloc.musicplayer.viewmodel.service.MediaPlayState
 
 class MediaPlaybackService : MediaBrowserServiceCompat() {
     private lateinit var mediaSession: MediaSessionCompat
     private lateinit var mediaCallback: MediaCallback
     private lateinit var mediaNotificationManager: MediaNotificationManager
+    private val mediaPlayState = MediaPlayState.getInstance()
 
     companion object {
         private val TAG: String = MediaPlaybackService::class.java.simpleName
+        private const val MY_MEDIA_ROOT_ID = "media_root_id"
     }
 
     override fun onGetRoot(
@@ -59,20 +61,19 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             setCallback(mediaCallback)
             setPlaybackState(
                 PlaybackStateCompat.Builder().apply {
-                    setActions(PlaybackStateCompat.ACTION_PLAY)
-                    setActions(PlaybackStateCompat.ACTION_SKIP_TO_NEXT)
-                    setActions(PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
-                }
-                    .build()
+                    setActions(
+                        PlaybackStateCompat.ACTION_PLAY or
+                                PlaybackStateCompat.ACTION_PAUSE or
+                                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                    )
+                }.build()
             )
             isActive = true
         }
         sessionToken = mediaSession.sessionToken
 
         mediaNotificationManager = MediaNotificationManager(this, mediaSession.sessionToken)
-
-        val notification = mediaNotificationManager.getNotification(false)
-        startForeground(MediaNotificationManager.NOTIFICATION_ID, notification)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -82,12 +83,14 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     }
 
     fun play() {
-        val notification = mediaNotificationManager.getNotification(true)
-        startForeground(MediaNotificationManager.NOTIFICATION_ID, notification)
+        mediaPlayState.song?.let {
+            mediaNotificationManager.showNotification(it, true)
+        }
     }
 
     fun pause() {
-        val notification = mediaNotificationManager.getNotification(false)
-        startForeground(MediaNotificationManager.NOTIFICATION_ID, notification)
+        mediaPlayState.song?.let {
+            mediaNotificationManager.showNotification(it, false)
+        }
     }
 }

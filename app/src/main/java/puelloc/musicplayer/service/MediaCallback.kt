@@ -17,6 +17,7 @@ class MediaCallback(private val mediaPlaybackService: MediaPlaybackService) : Me
 
     override fun onPause() {
         super.onPause()
+        mediaPlaybackService.pause()
         Log.d(TAG, "Pause")
     }
 

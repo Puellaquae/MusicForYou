@@ -1,21 +1,18 @@
 package puelloc.musicplayer.ui.activity
 
-import android.content.ComponentName
-import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
-import android.os.RemoteException
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
-import android.support.v4.media.session.MediaControllerCompat.*
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
+import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
@@ -25,31 +22,39 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ActivityMainBinding
-import puelloc.musicplayer.service.MediaPlaybackService
 import puelloc.musicplayer.service.MediaServiceHelper
 import puelloc.musicplayer.ui.fragment.ForYouFragment
 import puelloc.musicplayer.ui.fragment.PlaylistFragment
 import puelloc.musicplayer.ui.fragment.SongFragment
-import puelloc.musicplayer.viewmodel.MediaPlayViewModel
+import puelloc.musicplayer.viewmodel.service.MediaPlayState
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
 
-
-private val FRAGMENTS = listOf(
-    lazy { ForYouFragment() } to R.id.nav_for_you,
-    lazy { SongFragment() } to R.id.nav_song,
-    lazy { PlaylistFragment() } to R.id.nav_playlist,
-)
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var mediaServiceHelper: MediaServiceHelper
     private val songViewModel: SongViewModel by viewModels()
     private val playlistViewModel: PlaylistViewModel by viewModels()
-    private val mediaPlayViewModel: MediaPlayViewModel by viewModels()
+    private val mediaPlayState = MediaPlayState.getInstance()
 
     companion object {
         private val TAG = MainActivity::class.java.simpleName
+
+        private val FRAGMENTS = listOf(
+            { ForYouFragment() } to R.id.nav_for_you,
+            { SongFragment() } to R.id.nav_song,
+            { PlaylistFragment() } to R.id.nav_playlist,
+        )
+
+        private val BOTTOM_NAVIGATION_ICON = mapOf(
+            R.id.nav_for_you to (R.drawable.ic_baseline_star_border_24
+                    to R.drawable.ic_baseline_star_24),
+            R.id.nav_song to (R.drawable.ic_outline_music_note_24
+                    to R.drawable.ic_baseline_music_note_24),
+            R.id.nav_playlist to (R.drawable.ic_outline_library_music_24
+                    to R.drawable.ic_baseline_library_music_24)
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,7 +106,7 @@ class MainActivity : AppCompatActivity() {
         }
         mediaServiceHelper.registerCallback(controllerCallback)
 
-        mediaPlayViewModel.singId.observe(this) {
+        mediaPlayState.registerSongListener {
             mediaServiceHelper.getTransportControls().play()
         }
     }
@@ -133,7 +138,7 @@ class MainActivity : AppCompatActivity() {
                     override fun getItemCount(): Int = FRAGMENTS.size
 
                     override fun createFragment(position: Int): Fragment = when (position) {
-                        in 0..FRAGMENTS.size -> FRAGMENTS[position].first.value
+                        in 0..FRAGMENTS.size -> FRAGMENTS[position].first()
                         else -> throw RuntimeException()
                     }
                 }
@@ -148,16 +153,26 @@ class MainActivity : AppCompatActivity() {
 
             bottomNavigation.apply {
                 labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_SELECTED
-                setOnItemSelectedListener {
+                menu.forEach { it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.first) }
+                setOnItemSelectedListener { it ->
+                    if (bottomNavigation.selectedItemId == it.itemId) {
+                        Log.d(TAG, "Reselected Item")
+                    } else {
+                        menu.forEach { m -> m.setIcon(BOTTOM_NAVIGATION_ICON[m.itemId]!!.first) }
+                    }
                     val idx = FRAGMENTS.indexOfFirst { f -> f.second == it.itemId }
                     if (idx != -1) {
+                        it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.second)
                         binding.viewPager.setCurrentItem(idx, true)
                         true
                     } else {
                         false
                     }
                 }
-                selectedItemId = R.id.nav_song
+            }
+
+            viewPager.post {
+                bottomNavigation.selectedItemId = R.id.nav_song
             }
         }
     }

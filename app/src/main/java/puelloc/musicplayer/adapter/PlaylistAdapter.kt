@@ -1,21 +1,17 @@
 package puelloc.musicplayer.adapter
 
-import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import puelloc.musicplayer.PLAYLIST_ID_MESSAGE
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ItemPlaylistBinding
-import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistWithSongs
 import puelloc.musicplayer.glide.audiocover.AudioCover
-import puelloc.musicplayer.ui.activity.PlaylistActivity
 
-class PlaylistAdapter :
+class PlaylistAdapter(private val onClick: (playlistWithSongs: PlaylistWithSongs) -> Unit) :
     ListAdapter<PlaylistWithSongs, PlaylistAdapter.ViewHolder>(object :
         DiffUtil.ItemCallback<PlaylistWithSongs>() {
         override fun areItemsTheSame(
@@ -31,7 +27,10 @@ class PlaylistAdapter :
             oldItem.hashCode() == newItem.hashCode()
     }) {
 
-    class ViewHolder(private val itemBinding: ItemPlaylistBinding) :
+    class ViewHolder(
+        private val itemBinding: ItemPlaylistBinding,
+        private val onClick: (playlistWithSongs: PlaylistWithSongs) -> Unit
+    ) :
         RecyclerView.ViewHolder(itemBinding.root) {
         fun bind(playlistWithSongs: PlaylistWithSongs) {
             itemBinding.apply {
@@ -44,10 +43,7 @@ class PlaylistAdapter :
                     .fallback(R.drawable.ic_baseline_music_note_24)
                     .into(playlistCover)
                 root.setOnClickListener {
-                    val intent = Intent(it.context, PlaylistActivity::class.java).apply {
-                        putExtra(PLAYLIST_ID_MESSAGE, playlistWithSongs.playlist.playlistId)
-                    }
-                    it.context.startActivity(intent)
+                    onClick(playlistWithSongs)
                 }
             }
         }
@@ -59,7 +55,8 @@ class PlaylistAdapter :
                 LayoutInflater.from(parent.context),
                 parent,
                 false
-            )
+            ),
+            onClick
         )
     }
 

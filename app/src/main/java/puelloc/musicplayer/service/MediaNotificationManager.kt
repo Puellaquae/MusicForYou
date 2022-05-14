@@ -1,16 +1,24 @@
 package puelloc.musicplayer.service
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.media.session.MediaButtonReceiver
+import com.bumptech.glide.Glide
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import puelloc.musicplayer.R
+import puelloc.musicplayer.entity.Song
+import puelloc.musicplayer.glide.audiocover.AudioCover
+import puelloc.musicplayer.ui.activity.MainActivity
 
 class MediaNotificationManager(
     private val service: MediaPlaybackService,
@@ -70,32 +78,56 @@ class MediaNotificationManager(
         }
     }
 
-    private fun buildNotification(isPlaying: Boolean): NotificationCompat.Builder {
+    private fun buildNotification(song: Song, isPlaying: Boolean): NotificationCompat.Builder {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createChannel()
         }
-        return NotificationCompat.Builder(service, CHANNEL_ID)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setSmallIcon(R.drawable.ic_round_music_note_24)
-            .addAction(prevAction)
-            .addAction(
+        val target = Glide.with(service.applicationContext).asBitmap().load(AudioCover(song.path))
+            .submit()
+        val notification = NotificationCompat.Builder(service, CHANNEL_ID).apply {
+            setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            setSmallIcon(R.drawable.ic_round_music_note_24)
+            setContentIntent(
+                PendingIntent.getActivity(
+                    service,
+                    0,
+                    Intent(service, MainActivity::class.java),
+                    PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
+            addAction(prevAction)
+            addAction(
                 if (isPlaying) {
                     pauseAction
                 } else {
                     playAction
                 }
             )
-            .addAction(nextAction)
-            .setStyle(
+            addAction(nextAction)
+            setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
                     .setShowActionsInCompactView(0, 1, 2)
                     .setMediaSession(sessionToken)
             )
-            .setContentTitle("Wonderful music")
-            .setContentText("My Awesome Band")
+            setContentTitle(song.name)
+            setContentText(song.artistName)
+
+            try {
+                val bitmap = target.get()
+                setLargeIcon(bitmap)
+            } catch (e: Exception) {
+
+            }
+        }
+
+        Glide.with(service.applicationContext).clear(target)
+        return notification
     }
 
-    fun getNotification(isPlaying: Boolean): Notification {
-        return buildNotification(isPlaying).build()
+    fun showNotification(song: Song, isPlaying: Boolean) {
+        MainScope().launch(Dispatchers.IO) {
+            val notification = buildNotification(song, isPlaying).build()
+            service.startForeground(NOTIFICATION_ID, notification)
+        }
     }
 }

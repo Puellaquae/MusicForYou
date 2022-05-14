@@ -1,17 +1,16 @@
 package puelloc.musicplayer.ui.activity
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.bundleOf
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.add
 import androidx.fragment.app.commit
-import puelloc.musicplayer.PLAYLIST_ID_MESSAGE
+import puelloc.musicplayer.App.Companion.PLAYLIST_ID_MESSAGE
 import puelloc.musicplayer.databinding.ActivityPlaylistBinding
-import puelloc.musicplayer.ui.fragment.PLAYLIST_ID_BUNDLE_KEY
 import puelloc.musicplayer.ui.fragment.SongFragment
+import puelloc.musicplayer.ui.fragment.SongFragment.Companion.PLAYLIST_ID_BUNDLE_KEY
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 
 class PlaylistActivity : AppCompatActivity() {
