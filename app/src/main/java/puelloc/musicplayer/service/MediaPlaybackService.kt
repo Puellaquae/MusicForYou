@@ -30,6 +30,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         clientUid: Int,
         rootHints: Bundle?
     ): BrowserRoot {
+        Log.d(TAG, "getRoot from $clientPackageName")
         return BrowserRoot(MY_MEDIA_ROOT_ID, null)
     }
 
@@ -37,12 +38,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         parentId: String,
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
-        Log.d(TAG, "onLoadChildren")
-        val mediaItems = listOf(MediaBrowserCompat.MediaItem(MediaMetadataCompat.Builder().apply {
-            putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, "Song123")
-            putString(MediaMetadataCompat.METADATA_KEY_TITLE, "Song")
-        }
-            .build().description, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE))
+        Log.d(TAG, "loadChildren from $parentId")
+        val mediaItems = emptyList<MediaBrowserCompat.MediaItem>()
         result.sendResult(mediaItems.toMutableList())
     }
 
@@ -64,8 +61,15 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                     setActions(
                         PlaybackStateCompat.ACTION_PLAY or
                                 PlaybackStateCompat.ACTION_PAUSE or
+                                PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                                PlaybackStateCompat.ACTION_STOP or
                                 PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
                                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                    )
+                    setState(
+                        PlaybackStateCompat.STATE_STOPPED,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1F
                     )
                 }.build()
             )
@@ -84,6 +88,21 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
 
     fun play() {
         mediaPlayState.song?.let {
+            mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
+                setActions(
+                    PlaybackStateCompat.ACTION_PLAY or
+                            PlaybackStateCompat.ACTION_PAUSE or
+                            PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                            PlaybackStateCompat.ACTION_STOP or
+                            PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                )
+                setState(
+                    PlaybackStateCompat.STATE_PLAYING,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F
+                )
+            }.build())
             mediaNotificationManager.showNotification(it, true)
         }
     }

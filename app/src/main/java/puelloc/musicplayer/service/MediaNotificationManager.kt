@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -12,9 +14,8 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.media.session.MediaButtonReceiver
 import com.bumptech.glide.Glide
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import puelloc.musicplayer.R
 import puelloc.musicplayer.entity.Song
 import puelloc.musicplayer.glide.audiocover.AudioCover
@@ -78,13 +79,11 @@ class MediaNotificationManager(
         }
     }
 
-    private fun buildNotification(song: Song, isPlaying: Boolean): NotificationCompat.Builder {
+    fun showNotification(song: Song, isPlaying: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createChannel()
         }
-        val target = Glide.with(service.applicationContext).asBitmap().load(AudioCover(song.path))
-            .submit()
-        val notification = NotificationCompat.Builder(service, CHANNEL_ID).apply {
+        val notificationBuilder = NotificationCompat.Builder(service, CHANNEL_ID).apply {
             setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             setSmallIcon(R.drawable.ic_round_music_note_24)
             setContentIntent(
@@ -95,6 +94,7 @@ class MediaNotificationManager(
                     PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             )
+            setShowWhen(false)
             addAction(prevAction)
             addAction(
                 if (isPlaying) {
@@ -111,23 +111,17 @@ class MediaNotificationManager(
             )
             setContentTitle(song.name)
             setContentText(song.artistName)
-
-            try {
-                val bitmap = target.get()
-                setLargeIcon(bitmap)
-            } catch (e: Exception) {
-
-            }
         }
+        Glide.with(service.applicationContext).asBitmap().load(AudioCover(song.path))
+            .into(object : CustomTarget<Bitmap>() {
+                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                    notificationBuilder.setLargeIcon(resource)
+                    service.startForeground(NOTIFICATION_ID, notificationBuilder.build())
+                }
 
-        Glide.with(service.applicationContext).clear(target)
-        return notification
-    }
-
-    fun showNotification(song: Song, isPlaying: Boolean) {
-        MainScope().launch(Dispatchers.IO) {
-            val notification = buildNotification(song, isPlaying).build()
-            service.startForeground(NOTIFICATION_ID, notification)
-        }
+                override fun onLoadCleared(placeholder: Drawable?) {
+                    service.startForeground(NOTIFICATION_ID, notificationBuilder.build())
+                }
+            })
     }
 }

@@ -24,8 +24,11 @@ import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ActivityMainBinding
 import puelloc.musicplayer.service.MediaServiceHelper
 import puelloc.musicplayer.ui.fragment.ForYouFragment
+import puelloc.musicplayer.ui.fragment.MusicLibraryFragment
 import puelloc.musicplayer.ui.fragment.PlaylistFragment
 import puelloc.musicplayer.ui.fragment.SongFragment
+import puelloc.musicplayer.viewmodel.MainActivityViewModel
+import puelloc.musicplayer.viewmodel.MainActivityViewModel.Companion.SHOW_MUSIC_LIBRARY
 import puelloc.musicplayer.viewmodel.service.MediaPlayState
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
@@ -36,18 +39,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mediaServiceHelper: MediaServiceHelper
     private val songViewModel: SongViewModel by viewModels()
     private val playlistViewModel: PlaylistViewModel by viewModels()
+    private val mainActivityViewModel: MainActivityViewModel by viewModels()
     private val mediaPlayState = MediaPlayState.getInstance()
 
     companion object {
         private val TAG = MainActivity::class.java.simpleName
 
-        private val FRAGMENTS = listOf(
+        val FRAGMENTS = listOf(
             { ForYouFragment() } to R.id.nav_for_you,
             { SongFragment() } to R.id.nav_song,
-            { PlaylistFragment() } to R.id.nav_playlist,
+            { MusicLibraryFragment() } to R.id.nav_playlist,
         )
 
-        private val BOTTOM_NAVIGATION_ICON = mapOf(
+        val BOTTOM_NAVIGATION_ICON = mapOf(
             R.id.nav_for_you to (R.drawable.ic_baseline_star_border_24
                     to R.drawable.ic_baseline_star_24),
             R.id.nav_song to (R.drawable.ic_outline_music_note_24
@@ -55,6 +59,9 @@ class MainActivity : AppCompatActivity() {
             R.id.nav_playlist to (R.drawable.ic_outline_library_music_24
                     to R.drawable.ic_baseline_library_music_24)
         )
+
+        val MENU_ID_TO_FRAGMENT_INDEX =
+            FRAGMENTS.mapIndexed { index, pair -> pair.second to index }.toMap()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -154,16 +161,17 @@ class MainActivity : AppCompatActivity() {
             bottomNavigation.apply {
                 labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_SELECTED
                 menu.forEach { it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.first) }
-                setOnItemSelectedListener { it ->
+                setOnItemSelectedListener {
                     if (bottomNavigation.selectedItemId == it.itemId) {
-                        Log.d(TAG, "Reselected Item")
+                        if (it.itemId == R.id.nav_playlist) {
+                            mainActivityViewModel.setToShowPlaylist(SHOW_MUSIC_LIBRARY)
+                        }
                     } else {
                         menu.forEach { m -> m.setIcon(BOTTOM_NAVIGATION_ICON[m.itemId]!!.first) }
                     }
-                    val idx = FRAGMENTS.indexOfFirst { f -> f.second == it.itemId }
-                    if (idx != -1) {
+                    if (MENU_ID_TO_FRAGMENT_INDEX.containsKey(it.itemId)) {
                         it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.second)
-                        binding.viewPager.setCurrentItem(idx, true)
+                        mainActivityViewModel.setCurrentFragmentRes(it.itemId)
                         true
                     } else {
                         false
@@ -173,6 +181,18 @@ class MainActivity : AppCompatActivity() {
 
             viewPager.post {
                 bottomNavigation.selectedItemId = R.id.nav_song
+            }
+
+            mainActivityViewModel.currentMusicLibraryTitle.observe(this@MainActivity) {
+                toolbar.title = it.first
+                toolbar.subtitle = it.second
+            }
+
+            mainActivityViewModel.currentFragmentRes.observe(this@MainActivity) {
+                val idx = MENU_ID_TO_FRAGMENT_INDEX[it]
+                if (idx != null) {
+                    viewPager.setCurrentItem(idx, true)
+                }
             }
         }
     }
@@ -184,6 +204,18 @@ class MainActivity : AppCompatActivity() {
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
             Log.d(TAG, "playback state changed, $state")
+        }
+    }
+
+    override fun onBackPressed() {
+        if (binding.bottomNavigation.selectedItemId == R.id.nav_playlist) {
+            if (mainActivityViewModel.showPlaylistId.value != SHOW_MUSIC_LIBRARY) {
+                mainActivityViewModel.setToShowPlaylist(SHOW_MUSIC_LIBRARY)
+            } else {
+                super.onBackPressed()
+            }
+        } else {
+            super.onBackPressed()
         }
     }
 }

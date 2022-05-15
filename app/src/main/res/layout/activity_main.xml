@@ -18,7 +18,8 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="@string/app_name"
-            app:titleCentered="true" />
+            app:titleCentered="true"
+            app:subtitleCentered="true"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 
