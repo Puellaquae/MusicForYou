@@ -1,11 +1,19 @@
 package puelloc.musicplayer.adapter
 
+import android.graphics.Color
+import android.os.Build
+import android.util.TypedValue
+import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.android.material.color.DynamicColors
+import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.*
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ItemSongBinding
@@ -25,8 +33,22 @@ class SongAdapter(private val onClick: (song: Song) -> Unit) :
         private val onClick: (song: Song) -> Unit
     ) :
         RecyclerView.ViewHolder(itemBind.root) {
-        fun bind(song: Song) {
+        fun bind(song: Song, selected: Boolean = false) {
             itemBind.apply {
+                if (selected) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        root.background.setTint(
+                            ContextCompat.getColor(
+                                root.context,
+                                android.R.color.system_accent1_200
+                            )
+                        )
+                    } else {
+                        root.background.setTint(Color.rgb(204, 190, 255))
+                    }
+                } else {
+                    root.background.setTint(Color.TRANSPARENT)
+                }
                 songName.text = song.name
                 songArtist.text = song.artistName
                 Glide
@@ -39,6 +61,8 @@ class SongAdapter(private val onClick: (song: Song) -> Unit) :
             }
         }
     }
+
+    var selectionTracker: SelectionTracker<Long>? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
@@ -53,6 +77,10 @@ class SongAdapter(private val onClick: (song: Song) -> Unit) :
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val song = getItem(position)
-        holder.bind(song)
+        holder.bind(song, selectionTracker?.isSelected(song.songId) ?: false)
+    }
+
+    override fun getItemId(position: Int): Long {
+        return getItem(position).songId
     }
 }

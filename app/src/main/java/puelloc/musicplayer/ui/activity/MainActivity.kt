@@ -8,9 +8,11 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import android.view.Menu
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.WindowCompat
 import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
@@ -25,13 +27,12 @@ import puelloc.musicplayer.databinding.ActivityMainBinding
 import puelloc.musicplayer.service.MediaServiceHelper
 import puelloc.musicplayer.ui.fragment.ForYouFragment
 import puelloc.musicplayer.ui.fragment.MusicLibraryFragment
-import puelloc.musicplayer.ui.fragment.PlaylistFragment
 import puelloc.musicplayer.ui.fragment.SongFragment
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
 import puelloc.musicplayer.viewmodel.MainActivityViewModel.Companion.SHOW_MUSIC_LIBRARY
-import puelloc.musicplayer.viewmodel.service.MediaPlayState
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
+import puelloc.musicplayer.viewmodel.service.MediaPlayState
 
 
 class MainActivity : AppCompatActivity() {
@@ -65,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "onCreate")
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
 
@@ -77,10 +79,7 @@ class MainActivity : AppCompatActivity() {
             ActivityResultContracts.RequestPermission()
         ) {
             if (it) {
-                MainScope().launch(Dispatchers.IO) {
-                    songViewModel.loadSongsSync()
-                    playlistViewModel.buildPlaylistByDirSync()
-                }
+                rebuildDatabase()
             }
         }
 
@@ -89,15 +88,12 @@ class MainActivity : AppCompatActivity() {
         if (readCallLogPermissionResult != PackageManager.PERMISSION_GRANTED) {
             requestPermissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
         } else {
-            MainScope().launch(Dispatchers.IO) {
-                songViewModel.loadSongsSync()
-                playlistViewModel.buildPlaylistByDirSync()
-            }
+            rebuildDatabase()
         }
 
-        mediaServiceHelper = object : MediaServiceHelper(this) {
+        mediaServiceHelper = object : MediaServiceHelper(this@MainActivity) {
             override fun onConnected(mediaController: MediaControllerCompat) {
-                Log.d(TAG, "onConnected")
+                Log.d(TAG, "onConnected, $mediaController")
             }
 
             override fun onChildrenLoaded(
@@ -183,7 +179,11 @@ class MainActivity : AppCompatActivity() {
                 bottomNavigation.selectedItemId = R.id.nav_song
             }
 
-            mainActivityViewModel.currentMusicLibraryTitle.observe(this@MainActivity) {
+            toolbar.setNavigationOnClickListener {
+
+            }
+
+            mainActivityViewModel.currentTitle.observe(this@MainActivity) {
                 toolbar.title = it.first
                 toolbar.subtitle = it.second
             }
@@ -192,6 +192,15 @@ class MainActivity : AppCompatActivity() {
                 val idx = MENU_ID_TO_FRAGMENT_INDEX[it]
                 if (idx != null) {
                     viewPager.setCurrentItem(idx, true)
+                }
+            }
+
+            mainActivityViewModel.currentTopBarButtonAndMenu.observe(this@MainActivity) {
+                toolbar.navigationIcon =
+                    it.first?.let { AppCompatResources.getDrawable(this@MainActivity, it) }
+                toolbar.menu.clear()
+                it.second?.let {
+                    toolbar.inflateMenu(it)
                 }
             }
         }
@@ -216,6 +225,15 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             super.onBackPressed()
+        }
+    }
+
+    private fun rebuildDatabase() {
+        if (false) {
+            MainScope().launch(Dispatchers.IO) {
+                songViewModel.loadSongsSync()
+                playlistViewModel.buildPlaylistByDirSync()
+            }
         }
     }
 }

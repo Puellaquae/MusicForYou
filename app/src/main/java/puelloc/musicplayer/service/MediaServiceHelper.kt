@@ -6,14 +6,21 @@ import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.util.Log
 
 abstract class MediaServiceHelper(private val context: Context) {
+
+    companion object {
+        private val TAG = MediaServiceHelper::class.java.simpleName
+    }
+
     private var mediaBrowser: MediaBrowserCompat? = null
     private var mediaController: MediaControllerCompat? = null
     private val callbacks: MutableList<MediaControllerCompat.Callback> = ArrayList()
 
     private val mediaConnectionCallback = object : MediaBrowserCompat.ConnectionCallback() {
         override fun onConnected() {
+            Log.d(TAG, "onConnected")
             mediaController = MediaControllerCompat(context, mediaBrowser!!.sessionToken)
             mediaController!!.registerCallback(mediaControllerCallback)
 
@@ -55,8 +62,15 @@ abstract class MediaServiceHelper(private val context: Context) {
 
     protected fun getMediaController(): MediaControllerCompat = mediaController!!
 
-    fun getTransportControls(): MediaControllerCompat.TransportControls =
-        mediaController!!.transportControls!!
+    fun getTransportControls(): MediaControllerCompat.TransportControls {
+        if (mediaController == null) {
+            Log.w(TAG, "mediaController is null")
+        }
+        if (mediaController!!.transportControls == null) {
+            Log.w(TAG, "transportControls is null")
+        }
+        return mediaController!!.transportControls!!
+    }
 
     fun start() {
         if (mediaBrowser == null) {

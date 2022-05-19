@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/selection_add_to_play_queue"
+        android:enabled="true"
+        android:icon="@drawable/ic_baseline_playlist_add_24"
+        android:title="Add To Queue" />
+</menu>
