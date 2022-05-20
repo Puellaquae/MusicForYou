@@ -9,6 +9,8 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +27,9 @@ import kotlinx.coroutines.launch
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ActivityMainBinding
 import puelloc.musicplayer.service.MediaServiceHelper
+import puelloc.musicplayer.trait.IHandleBackPress
+import puelloc.musicplayer.trait.IHandleFAB
+import puelloc.musicplayer.trait.IHandleMenuItemClick
 import puelloc.musicplayer.ui.fragment.ForYouFragment
 import puelloc.musicplayer.ui.fragment.MusicLibraryFragment
 import puelloc.musicplayer.ui.fragment.SongFragment
@@ -35,7 +40,7 @@ import puelloc.musicplayer.viewmodel.SongViewModel
 import puelloc.musicplayer.viewmodel.service.MediaPlayState
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB {
     private lateinit var binding: ActivityMainBinding
     private lateinit var mediaServiceHelper: MediaServiceHelper
     private val songViewModel: SongViewModel by viewModels()
@@ -133,6 +138,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initView() {
+        com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior()
+
         binding.apply {
             viewPager.apply {
                 isUserInputEnabled = false
@@ -159,9 +166,7 @@ class MainActivity : AppCompatActivity() {
                 menu.forEach { it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.first) }
                 setOnItemSelectedListener {
                     if (bottomNavigation.selectedItemId == it.itemId) {
-                        if (it.itemId == R.id.nav_playlist) {
-                            mainActivityViewModel.setToShowPlaylist(SHOW_MUSIC_LIBRARY)
-                        }
+
                     } else {
                         menu.forEach { m -> m.setIcon(BOTTOM_NAVIGATION_ICON[m.itemId]!!.first) }
                     }
@@ -180,7 +185,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             toolbar.setNavigationOnClickListener {
+                onBackPressed()
+            }
 
+            toolbar.setOnMenuItemClickListener {
+                onMenuItemClicked(it)
+            }
+
+            floatingActionButton.setOnClickListener {
+                onFABClick()
             }
 
             mainActivityViewModel.currentTitle.observe(this@MainActivity) {
@@ -196,11 +209,28 @@ class MainActivity : AppCompatActivity() {
             }
 
             mainActivityViewModel.currentTopBarButtonAndMenu.observe(this@MainActivity) {
-                toolbar.navigationIcon =
-                    it.first?.let { AppCompatResources.getDrawable(this@MainActivity, it) }
+                if (it.first == null) {
+                    toolbar.navigationIcon = null
+                } else {
+                    toolbar.setNavigationIcon(it.first!!)
+                }
                 toolbar.menu.clear()
                 it.second?.let {
                     toolbar.inflateMenu(it)
+                }
+            }
+
+            mainActivityViewModel.currentFABIcon.observe(this@MainActivity) {
+                if (it == null) {
+                    floatingActionButton.visibility = View.GONE
+                } else {
+                    floatingActionButton.visibility = View.VISIBLE
+                    floatingActionButton.setImageDrawable(
+                        AppCompatResources.getDrawable(
+                            this@MainActivity,
+                            it
+                        )
+                    )
                 }
             }
         }
@@ -217,15 +247,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (binding.bottomNavigation.selectedItemId == R.id.nav_playlist) {
-            if (mainActivityViewModel.showPlaylistId.value != SHOW_MUSIC_LIBRARY) {
-                mainActivityViewModel.setToShowPlaylist(SHOW_MUSIC_LIBRARY)
-            } else {
-                super.onBackPressed()
-            }
-        } else {
-            super.onBackPressed()
+        val currentFragment =
+            supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
+        Log.d(TAG, "onBackPress current fragment: $currentFragment")
+        if (currentFragment is IHandleBackPress && currentFragment.onBackPressed()) {
+            return
         }
+        super.onBackPressed()
     }
 
     private fun rebuildDatabase() {
@@ -235,5 +263,25 @@ class MainActivity : AppCompatActivity() {
                 playlistViewModel.buildPlaylistByDirSync()
             }
         }
+    }
+
+    override fun onMenuItemClicked(menuItem: MenuItem): Boolean {
+        val currentFragment =
+            supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
+        Log.d(TAG, "onMenuItemClicked current fragment: $currentFragment")
+        if (currentFragment is IHandleMenuItemClick && currentFragment.onMenuItemClicked(menuItem)) {
+            return true
+        }
+        return false
+    }
+
+    override fun onFABClick(): Boolean {
+        val currentFragment =
+            supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
+        Log.d(TAG, "onFABClick current fragment: $currentFragment")
+        if (currentFragment is IHandleFAB && currentFragment.onFABClick()) {
+            return true
+        }
+        return false
     }
 }

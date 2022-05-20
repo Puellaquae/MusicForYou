@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import org.jetbrains.annotations.NotNull
+import puelloc.musicplayer.trait.Equatable
 
 @Entity(indices = [Index("songId")])
 data class Song(
@@ -14,4 +15,4 @@ data class Song(
     val artistName: String,
     val path: String,
     val duration: Long,
-)
+) : Equatable

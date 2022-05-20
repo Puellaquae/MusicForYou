@@ -3,6 +3,7 @@ package puelloc.musicplayer.entity
 import androidx.room.Embedded
 import androidx.room.Junction
 import androidx.room.Relation
+import puelloc.musicplayer.trait.Equatable
 
 data class PlaylistWithSongs(
     @Embedded val playlist: Playlist,
@@ -12,4 +13,4 @@ data class PlaylistWithSongs(
         associateBy = Junction(PlaylistSongCrossRef::class)
     )
     val songs: List<Song>
-)
+) : Equatable

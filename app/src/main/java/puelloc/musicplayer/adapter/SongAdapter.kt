@@ -36,16 +36,9 @@ class SongAdapter(private val onClick: (song: Song) -> Unit) :
         fun bind(song: Song, selected: Boolean = false) {
             itemBind.apply {
                 if (selected) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        root.background.setTint(
-                            ContextCompat.getColor(
-                                root.context,
-                                android.R.color.system_accent1_200
-                            )
-                        )
-                    } else {
-                        root.background.setTint(Color.rgb(204, 190, 255))
-                    }
+                    root.background.setTint(
+                        ContextCompat.getColor(root.context, R.color.selected)
+                    )
                 } else {
                     root.background.setTint(Color.TRANSPARENT)
                 }
