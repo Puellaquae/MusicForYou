@@ -150,4 +150,6 @@ class SelectableItemAdapter<T>(
     fun addSelectionObserver(selectionObserver: SelectionTracker.SelectionObserver<Long>) {
         selectionTracker.addObserver(selectionObserver)
     }
+
+    fun getSelection(): List<Long> = selectionTracker.selection.toList()
 }

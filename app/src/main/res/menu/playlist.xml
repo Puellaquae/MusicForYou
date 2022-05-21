@@ -4,5 +4,5 @@
         android:id="@+id/menu_delete_playlist"
         android:enabled="true"
         android:icon="@drawable/ic_baseline_delete_24"
-        android:title="删除歌单" />
+        android:title="@string/delete_playlist" />
 </menu>

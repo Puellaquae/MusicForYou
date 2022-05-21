@@ -1,6 +1,7 @@
 package puelloc.musicplayer.viewmodel
 
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.*
 import puelloc.musicplayer.R
 import puelloc.musicplayer.db.AppDatabase
@@ -10,8 +11,14 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         AppDatabase.getDatabase(getApplication<Application?>().applicationContext)
     private val playlistDao = appDatabase.playlistDao()
 
+    private fun getString(@StringRes res: Int): String =
+        getApplication<Application?>().applicationContext.getString(res)
+
+    private fun getString(@StringRes res: Int, vararg args: Any): String =
+        getApplication<Application?>().applicationContext.getString(res, *args)
+
     private val _showPlaylistId = MutableLiveData<Long>().apply {
-        postValue(-1)
+        postValue(MUSIC_LIBRARY_SHOW_PLAYLISTS)
     }
 
     private val _currentFragmentRes = MutableLiveData<Int>().apply {
@@ -42,77 +49,93 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         val title =
             getApplication<Application?>().applicationContext.getString(R.string.app_name)
         when (res) {
-            R.id.nav_playlist -> showPlaylistId.switchMap { playlistId ->
-                when (playlistId) {
-                    SHOW_MUSIC_LIBRARY -> liveData {
-                        emit(title to "")
-                    }
-                    else -> getTitleForShowPlaylist(playlistId)
-                }
-            }
+            R.id.nav_musiclibrary -> getTitleForMusicLibrary(title)
             else -> liveData { emit(title to "") }
         }
     }
 
+    private fun getTitleForMusicLibrary(title: String): LiveData<Pair<String, String>> =
+        showPlaylistId.switchMap { playlistId ->
+            when (playlistId) {
+                MUSIC_LIBRARY_SHOW_PLAYLISTS -> liveData {
+                    emit(title to "")
+                }
+                else -> getTitleForShowPlaylist(playlistId)
+            }
+        }
+
+    private fun getTitleForShowPlaylist(playlistId: Long): LiveData<Pair<String, String>> =
+        playlistDao.getPlaylistWithSongs(playlistId).asLiveData()
+            .switchMap {
+                playlistSongsSelectionSize.map { size ->
+                    if (size == 0) {
+                        it.playlist.name to getString(R.string.songs_count, it.songs.size)
+                    } else {
+                        it.playlist.name to getString(
+                            R.string.selected_songs_count_of_total,
+                            size,
+                            it.songs.size
+                        )
+                    }
+                }
+            }
+
     val currentTopBarButtonAndMenu: LiveData<Pair<Int?, Int?>> =
         currentFragmentRes.switchMap { res ->
             when (res) {
-                R.id.nav_playlist -> showPlaylistId.switchMap { playlistId ->
-                    when (playlistId) {
-                        SHOW_MUSIC_LIBRARY -> playlistsSelectionSize.map { size ->
-                            if (size == 0) {
-                                null to null
-                            } else {
-                                R.drawable.ic_baseline_close_24 to R.menu.music_selection
-                            }
-                        }
-                        else -> playlistDao.getPlaylist(playlistId).asLiveData()
-                            .switchMap { playlist ->
-                                playlistSongsSelectionSize.map { size ->
-                                    if (size == 0) {
-                                        R.drawable.ic_baseline_arrow_back_24 to if (playlist.isFromFolder) {
-                                            null
-                                        } else {
-                                            R.menu.music_playlist_notfromfolder
-                                        }
-                                    } else {
-                                        R.drawable.ic_baseline_close_24 to R.menu.selection
-                                    }
-                                }
-                            }
-                    }
-                }
+                R.id.nav_musiclibrary -> getTopBarButtonAndMenuForMusicLibrary()
                 else -> liveData {
                     emit(null to null)
                 }
             }
         }
 
+    private fun getTopBarButtonAndMenuForMusicLibrary(): LiveData<Pair<Int?, Int?>> =
+        showPlaylistId.switchMap { playlistId ->
+            when (playlistId) {
+                MUSIC_LIBRARY_SHOW_PLAYLISTS -> playlistsSelectionSize.map { size ->
+                    if (size == 0) {
+                        null to null
+                    } else {
+                        R.drawable.ic_baseline_close_24 to R.menu.music_playlists_selection
+                    }
+                }
+                else -> playlistDao.getPlaylist(playlistId).asLiveData()
+                    .switchMap { playlist ->
+                        playlistSongsSelectionSize.map { size ->
+                            if (size == 0) {
+                                R.drawable.ic_baseline_arrow_back_24 to if (playlist.isFromFolder) {
+                                    null
+                                } else {
+                                    R.menu.playlist
+                                }
+                            } else {
+                                R.drawable.ic_baseline_close_24 to if (playlist.isFromFolder) {
+                                    R.menu.playlist_folder_songs_selection
+                                } else {
+                                    R.menu.playlist_songs_selection
+                                }
+                            }
+                        }
+                    }
+            }
+        }
+
     val currentFABIcon: LiveData<Int?> = currentFragmentRes.switchMap { res ->
         when (res) {
-            R.id.nav_playlist -> showPlaylistId.map {
-                if (it == SHOW_MUSIC_LIBRARY) {
-                    R.drawable.ic_baseline_add_24
-                } else {
-                    null
-                }
-            }
+            R.id.nav_musiclibrary -> getFABIconForMusicLibrary()
             else -> liveData { emit(null) }
         }
     }
 
-    private fun getTitleForShowPlaylist(playlistId: Long): LiveData<Pair<String, String>> {
-        return playlistDao.getPlaylistWithSongs(playlistId).asLiveData()
-            .switchMap {
-                playlistSongsSelectionSize.map { size ->
-                    if (size == 0) {
-                        it.playlist.name to "${it.songs.size} songs"
-                    } else {
-                        it.playlist.name to "${playlistSongsSelectionSize.value} of ${it.songs.size} songs"
-                    }
-                }
+    private fun getFABIconForMusicLibrary(): LiveData<Int?> =
+        showPlaylistId.map {
+            if (it == MUSIC_LIBRARY_SHOW_PLAYLISTS) {
+                R.drawable.ic_baseline_add_24
+            } else {
+                null
             }
-    }
+        }
 
     val playlistSongsSelectionSize: LiveData<Int> = _playlistSongsSelectionSize
 
@@ -127,6 +150,6 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     }
 
     companion object {
-        const val SHOW_MUSIC_LIBRARY = -1L
+        const val MUSIC_LIBRARY_SHOW_PLAYLISTS = -1L
     }
 }

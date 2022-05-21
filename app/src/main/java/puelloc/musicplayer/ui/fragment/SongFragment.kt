@@ -1,7 +1,6 @@
 package puelloc.musicplayer.ui.fragment
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -16,16 +15,19 @@ import puelloc.musicplayer.entity.Song
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.trait.IHandleBackPress
 import puelloc.musicplayer.trait.IHandleMenuItemClick
+import puelloc.musicplayer.ui.dialog.PickPlaylistDialog
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
 import puelloc.musicplayer.viewmodel.service.MediaPlayState
-
+import kotlin.properties.Delegates
 
 class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
 
     companion object {
         const val PLAYLIST_ID_BUNDLE_KEY = "playlistId"
+        const val SHOW_PLAY_QUEUE = -1L
+        const val PICK_PLAYLIST_DIALOG_TAG = "pick playlist dialog tag"
         private val TAG = SongFragment::class.java.simpleName
     }
 
@@ -35,6 +37,7 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
         set(value) {
             _binding = value
         }
+    private var currentPlaylistId by Delegates.notNull<Long>()
     private val songViewModel: SongViewModel by activityViewModels()
     private val playlistViewModel: PlaylistViewModel by activityViewModels()
     private val mainActivityViewModel: MainActivityViewModel by activityViewModels()
@@ -61,13 +64,14 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
         ) {
             mediaPlayState.song = it
         }
-        val playlistId = arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, -1) ?: -1
-        if (playlistId == -1L) {
+        currentPlaylistId =
+            arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, SHOW_PLAY_QUEUE) ?: SHOW_PLAY_QUEUE
+        if (currentPlaylistId == SHOW_PLAY_QUEUE) {
             songViewModel.getSongs().observe(viewLifecycleOwner) {
                 songAdapter.submitList(it)
             }
         } else {
-            playlistViewModel.getPlaylistWithSong(playlistId).observe(viewLifecycleOwner) {
+            playlistViewModel.getPlaylistWithSong(currentPlaylistId).observe(viewLifecycleOwner) {
                 songAdapter.submitList(it.songs)
             }
             songAdapter.addSelectionObserver(object : SelectionTracker.SelectionObserver<Long>() {
@@ -94,6 +98,28 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
                 true
             }
             R.id.selection_add_to_play_queue -> {
+                TODO("Wait For Play Queue Designed And Implemented")
+            }
+            R.id.selection_add_to_playlist -> {
+                val pickPlaylistDialog = PickPlaylistDialog {
+                    playlistViewModel.addSongsBySongIdToPlaylistWithPlaylistId(
+                        it,
+                        songAdapter.getSelection()
+                    )
+                    songAdapter.clearSelection()
+                }
+                pickPlaylistDialog.show(
+                    parentFragmentManager,
+                    PICK_PLAYLIST_DIALOG_TAG
+                )
+                true
+            }
+            R.id.selection_remove_from_playlist -> {
+                playlistViewModel.removeSongsBySongIdFromPlaylistWithPlaylistId(
+                    currentPlaylistId,
+                    songAdapter.getSelection()
+                )
+                songAdapter.clearSelection()
                 true
             }
             else -> false

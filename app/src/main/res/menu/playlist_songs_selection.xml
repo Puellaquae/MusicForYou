@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/selection_select_all"
+        android:enabled="true"
+        android:icon="@drawable/ic_baseline_done_all_24"
+        android:title="@string/select_all" />
+
+    <item
+        android:id="@+id/selection_add_to_play_queue"
+        android:enabled="true"
+        android:icon="@drawable/ic_baseline_playlist_play_24"
+        android:title="@string/add_to_play_queue" />
+
+    <item
+        android:id="@+id/selection_add_to_playlist"
+        android:enabled="true"
+        android:icon="@drawable/ic_baseline_playlist_add_24"
+        android:title="@string/add_to_other_playlist" />
+
+    <item
+        android:id="@+id/selection_remove_from_playlist"
+        android:enabled="true"
+        android:icon="@drawable/ic_baseline_delete_24"
+        android:title="@string/remove_from_playlist" />
+</menu>

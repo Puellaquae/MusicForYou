@@ -1,7 +1,21 @@
 <resources>
     <string name="app_name">Music For You</string>
     <string name="pause">Pause</string>
-    <string name="prev">Prev</string>
+    <string name="prev">Previous</string>
     <string name="next">Next</string>
     <string name="play">Play</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="new_playlist">New Playlist</string>
+    <string name="delete_playlist">Delete Playlist</string>
+    <string name="clear_selection">Clear Selection</string>
+    <string name="select_all">Select All</string>
+    <string name="add_to_play_queue">Add To Play Queue</string>
+    <string name="add_to_other_playlist">Add To Other Playlist</string>
+    <string name="remove_from_playlist">Remove From Playlist</string>
+    <string name="songs_count">%d songs</string>
+    <string name="selected_songs_count_of_total">selected %1$d of %2$d songs</string>
+    <string name="delete_selected_playlist">Delete Selected Playlist</string>
+    <string name="pick_playlist">Pick Playlist</string>
+    <string name="playlist_name">Playlist Name</string>
 </resources>

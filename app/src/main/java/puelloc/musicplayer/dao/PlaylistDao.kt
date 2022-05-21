@@ -22,6 +22,10 @@ abstract class PlaylistDao {
     @Query("SELECT * FROM playlist")
     abstract fun getAllPlaylistsWithSongs() : Flow<List<PlaylistWithSongs>>
 
+    @Transaction
+    @Query("SELECT * FROM playlist WHERE isFromFolder == 0")
+    abstract fun getAllNotFromFolderPlaylistsWithSongs() : Flow<List<PlaylistWithSongs>>
+
     @Insert
     abstract fun insert(playlist: Playlist): Long
 
@@ -48,8 +52,17 @@ abstract class PlaylistDao {
     @Query("DELETE FROM playlistsongcrossref WHERE playlistId == :playlistId")
     abstract fun deleteToDeRefAllSongsOfPlaylist(playlistId: Long)
 
+    @Query("DELETE FROM playlistsongcrossref WHERE playlistId == :playlistId AND songId == :songId")
+    abstract fun removeSongFromPlaylist(playlistId: Long, songId: Long)
+
     @Delete
     abstract fun delete(playlist: Playlist)
+
+    /**
+     * This won't delete the link between playlist and song, so call [deleteToDeRefAllSongsOfPlaylist] first.
+     */
+    @Query("DELETE FROM playlist WHERE playlistId == :playlistId")
+    abstract fun deleteByPlaylistId(playlistId: Long)
 
     @Transaction
     open fun clearPlaylistsWhichBuiltFromFolder() {
@@ -58,4 +71,7 @@ abstract class PlaylistDao {
             delete(it)
         }
     }
+
+    @Query("SELECT playlistId FROM playlist WHERE isFromFolder == 0 AND playlistId IN (:playlistIds)")
+    abstract fun excludeFolderPlaylistIdSync(playlistIds: List<Long>): List<Long>
 }

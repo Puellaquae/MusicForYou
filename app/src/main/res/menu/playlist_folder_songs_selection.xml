@@ -4,11 +4,17 @@
         android:id="@+id/selection_select_all"
         android:enabled="true"
         android:icon="@drawable/ic_baseline_done_all_24"
-        android:title="Select All" />
+        android:title="@string/select_all" />
 
     <item
         android:id="@+id/selection_add_to_play_queue"
         android:enabled="true"
+        android:icon="@drawable/ic_baseline_playlist_play_24"
+        android:title="@string/add_to_play_queue" />
+
+    <item
+        android:id="@+id/selection_add_to_playlist"
+        android:enabled="true"
         android:icon="@drawable/ic_baseline_playlist_add_24"
-        android:title="Add To Queue" />
+        android:title="@string/add_to_other_playlist" />
 </menu>

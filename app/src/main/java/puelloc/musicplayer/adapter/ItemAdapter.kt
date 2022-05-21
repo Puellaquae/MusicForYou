@@ -1,5 +1,6 @@
 package puelloc.musicplayer.adapter
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.DrawableRes
@@ -39,6 +40,7 @@ class ItemAdapter<T>(
         RecyclerView.ViewHolder(itemBinding.root) {
         fun bind(item: T) {
             itemBinding.apply {
+                root.background.setTint(Color.TRANSPARENT)
                 itemTitle.text = getItemTitle(item)
                 itemSubtitle.text = getItemSubtitle(item)
                 Glide

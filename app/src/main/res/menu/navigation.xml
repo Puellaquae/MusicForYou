@@ -4,16 +4,13 @@
     <item
         android:id="@+id/nav_for_you"
         android:enabled="true"
-        android:icon="@drawable/ic_baseline_star_border_24"
         android:title="For You" />
     <item
         android:id="@+id/nav_song"
         android:enabled="true"
-        android:icon="@drawable/ic_baseline_music_note_24"
         android:title="Song" />
     <item
-        android:id="@+id/nav_playlist"
+        android:id="@+id/nav_musiclibrary"
         android:enabled="true"
-        android:icon="@drawable/ic_baseline_queue_music_24"
-        android:title="Playlist" />
+        android:title="Music" />
 </menu>

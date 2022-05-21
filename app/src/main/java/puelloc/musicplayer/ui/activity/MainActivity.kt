@@ -8,7 +8,6 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
-import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,17 +29,17 @@ import puelloc.musicplayer.service.MediaServiceHelper
 import puelloc.musicplayer.trait.IHandleBackPress
 import puelloc.musicplayer.trait.IHandleFAB
 import puelloc.musicplayer.trait.IHandleMenuItemClick
+import puelloc.musicplayer.trait.IHandleNavigationReselect
 import puelloc.musicplayer.ui.fragment.ForYouFragment
 import puelloc.musicplayer.ui.fragment.MusicLibraryFragment
 import puelloc.musicplayer.ui.fragment.SongFragment
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
-import puelloc.musicplayer.viewmodel.MainActivityViewModel.Companion.SHOW_MUSIC_LIBRARY
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
 import puelloc.musicplayer.viewmodel.service.MediaPlayState
 
-
-class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB {
+class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
+    IHandleNavigationReselect {
     private lateinit var binding: ActivityMainBinding
     private lateinit var mediaServiceHelper: MediaServiceHelper
     private val songViewModel: SongViewModel by viewModels()
@@ -54,7 +53,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB {
         val FRAGMENTS = listOf(
             { ForYouFragment() } to R.id.nav_for_you,
             { SongFragment() } to R.id.nav_song,
-            { MusicLibraryFragment() } to R.id.nav_playlist,
+            { MusicLibraryFragment() } to R.id.nav_musiclibrary,
         )
 
         val BOTTOM_NAVIGATION_ICON = mapOf(
@@ -62,7 +61,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB {
                     to R.drawable.ic_baseline_star_24),
             R.id.nav_song to (R.drawable.ic_outline_music_note_24
                     to R.drawable.ic_baseline_music_note_24),
-            R.id.nav_playlist to (R.drawable.ic_outline_library_music_24
+            R.id.nav_musiclibrary to (R.drawable.ic_outline_library_music_24
                     to R.drawable.ic_baseline_library_music_24)
         )
 
@@ -141,6 +140,25 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB {
         com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior()
 
         binding.apply {
+            bottomNavigation.apply {
+                labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_SELECTED
+                menu.forEach { it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.first) }
+                setOnItemSelectedListener {
+                    if (bottomNavigation.selectedItemId == it.itemId) {
+                        onNavigationReselect()
+                    } else {
+                        menu.forEach { m -> m.setIcon(BOTTOM_NAVIGATION_ICON[m.itemId]!!.first) }
+                    }
+                    if (MENU_ID_TO_FRAGMENT_INDEX.containsKey(it.itemId)) {
+                        it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.second)
+                        mainActivityViewModel.setCurrentFragmentRes(it.itemId)
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+
             viewPager.apply {
                 isUserInputEnabled = false
 
@@ -159,25 +177,6 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB {
                         binding.bottomNavigation.menu.getItem(position).isChecked = true
                     }
                 })
-            }
-
-            bottomNavigation.apply {
-                labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_SELECTED
-                menu.forEach { it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.first) }
-                setOnItemSelectedListener {
-                    if (bottomNavigation.selectedItemId == it.itemId) {
-
-                    } else {
-                        menu.forEach { m -> m.setIcon(BOTTOM_NAVIGATION_ICON[m.itemId]!!.first) }
-                    }
-                    if (MENU_ID_TO_FRAGMENT_INDEX.containsKey(it.itemId)) {
-                        it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.second)
-                        mainActivityViewModel.setCurrentFragmentRes(it.itemId)
-                        true
-                    } else {
-                        false
-                    }
-                }
             }
 
             viewPager.post {
@@ -246,16 +245,6 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB {
         }
     }
 
-    override fun onBackPressed() {
-        val currentFragment =
-            supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
-        Log.d(TAG, "onBackPress current fragment: $currentFragment")
-        if (currentFragment is IHandleBackPress && currentFragment.onBackPressed()) {
-            return
-        }
-        super.onBackPressed()
-    }
-
     private fun rebuildDatabase() {
         if (false) {
             MainScope().launch(Dispatchers.IO) {
@@ -265,23 +254,47 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB {
         }
     }
 
+    override fun onBackPressed() {
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is IHandleBackPress &&
+            currentFragment.onBackPressed()
+        ) {
+            return
+        }
+        super.onBackPressed()
+    }
+
+
     override fun onMenuItemClicked(menuItem: MenuItem): Boolean {
-        val currentFragment =
-            supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
-        Log.d(TAG, "onMenuItemClicked current fragment: $currentFragment")
-        if (currentFragment is IHandleMenuItemClick && currentFragment.onMenuItemClicked(menuItem)) {
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is IHandleMenuItemClick &&
+            currentFragment.onMenuItemClicked(menuItem)
+        ) {
             return true
         }
         return false
     }
 
     override fun onFABClick(): Boolean {
-        val currentFragment =
-            supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
-        Log.d(TAG, "onFABClick current fragment: $currentFragment")
-        if (currentFragment is IHandleFAB && currentFragment.onFABClick()) {
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is IHandleFAB &&
+            currentFragment.onFABClick()
+        ) {
             return true
         }
         return false
     }
+
+    override fun onNavigationReselect(): Boolean {
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is IHandleNavigationReselect &&
+            currentFragment.onNavigationReselect()
+        ) {
+            return true
+        }
+        return false
+    }
+
+    private fun getCurrentFragment() =
+        supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
 }

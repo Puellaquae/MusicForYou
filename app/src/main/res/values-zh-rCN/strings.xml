@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Music For You</string>
+    <string name="pause">暂停</string>
+    <string name="prev">上一首</string>
+    <string name="next">下一首</string>
+    <string name="play">播放</string>
+    <string name="cancel">取消</string>
+    <string name="ok">确定</string>
+    <string name="new_playlist">新增歌单</string>
+    <string name="delete_playlist">删除歌单</string>
+    <string name="clear_selection">取消多选</string>
+    <string name="select_all">全选</string>
+    <string name="add_to_play_queue">加入播放队列</string>
+    <string name="add_to_other_playlist">添加到其他歌单</string>
+    <string name="remove_from_playlist">从歌单中移除</string>
+    <string name="songs_count">%d首歌</string>
+    <string name="selected_songs_count_of_total">已选%2$d首中%1$d首歌</string>
+    <string name="delete_selected_playlist">删除所选歌单</string>
+    <string name="pick_playlist">选择歌单</string>
+    <string name="playlist_name">歌单名称</string>
+</resources>

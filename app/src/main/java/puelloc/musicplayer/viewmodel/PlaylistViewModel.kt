@@ -2,11 +2,13 @@ package puelloc.musicplayer.viewmodel
 
 import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.asLiveData
+import androidx.lifecycle.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import puelloc.musicplayer.db.AppDatabase
 import puelloc.musicplayer.entity.Playlist
+import puelloc.musicplayer.entity.PlaylistSongCrossRef
 import puelloc.musicplayer.entity.PlaylistWithSongs
 import puelloc.musicplayer.entity.Song
 
@@ -51,7 +53,12 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
                 }
                 if (songs.isNotEmpty()) {
                     subSongs.addAll(songs)
-                    subPlaylist.add(PlaylistWithSongs(Playlist(name = path, isFromFolder = true), subSongs))
+                    subPlaylist.add(
+                        PlaylistWithSongs(
+                            Playlist(name = path, isFromFolder = true),
+                            subSongs
+                        )
+                    )
                 }
                 return subPlaylist
             }
@@ -65,5 +72,60 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
         val playlists = dir.buildPlaylist()
         playlistDao.clearPlaylistsWhichBuiltFromFolder()
         playlistDao.insertPlaylistsWithSons(playlists)
+    }
+
+    fun newPlaylist(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val playlist = Playlist(name = name)
+            playlistDao.insert(playlist)
+        }
+    }
+
+    fun newPlaylistAndGetPlaylistId(name: String): LiveData<Long> =
+        liveData {
+            emit(withContext(viewModelScope.coroutineContext + Dispatchers.IO) {
+                playlistDao.rowIdToPlaylistId(
+                    playlistDao.insert(
+                        Playlist(name = name)
+                    )
+                )
+            })
+        }
+
+    fun removeSongsBySongIdFromPlaylistWithPlaylistId(playlistId: Long, songIds: List<Long>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            songIds.forEach {
+                playlistDao.removeSongFromPlaylist(playlistId, it)
+            }
+        }
+    }
+
+    fun getAllNotFromFolderPlaylistsWithSongs() =
+        playlistDao.getAllNotFromFolderPlaylistsWithSongs().asLiveData()
+
+    fun addSongsBySongIdToPlaylistWithPlaylistId(playlistId: Long, songIds: List<Long>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            songIds.forEach {
+                playlistDao.insertToRefPlaylistAndSong(
+                    PlaylistSongCrossRef(playlistId, it)
+                )
+            }
+        }
+    }
+
+    fun deletePlaylistsByPlaylistId(
+        playlistIds: List<Long>,
+        includeFolderPlaylist: Boolean = true
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (includeFolderPlaylist) {
+                playlistIds
+            } else {
+                playlistDao.excludeFolderPlaylistIdSync(playlistIds)
+            }.forEach {
+                playlistDao.deleteToDeRefAllSongsOfPlaylist(it)
+                playlistDao.deleteByPlaylistId(it)
+            }
+        }
     }
 }

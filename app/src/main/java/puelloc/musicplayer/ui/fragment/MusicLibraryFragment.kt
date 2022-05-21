@@ -6,16 +6,18 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
-import androidx.fragment.app.*
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.commit
+import androidx.fragment.app.replace
 import puelloc.musicplayer.databinding.FragmentMusicLibraryBinding
-import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.trait.IHandleBackPress
+import puelloc.musicplayer.trait.IHandleFAB
 import puelloc.musicplayer.trait.IHandleMenuItemClick
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
-import puelloc.musicplayer.viewmodel.MainActivityViewModel.Companion.SHOW_MUSIC_LIBRARY
+import puelloc.musicplayer.viewmodel.MainActivityViewModel.Companion.MUSIC_LIBRARY_SHOW_PLAYLISTS
 
-
-class MusicLibraryFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
+class MusicLibraryFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick, IHandleFAB {
     private var _binding: FragmentMusicLibraryBinding? = null
     private var binding: FragmentMusicLibraryBinding
         get() = _binding!!
@@ -37,7 +39,7 @@ class MusicLibraryFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick 
         super.onViewCreated(view, savedInstanceState)
         mainActivityViewModel.showPlaylistId.observe(viewLifecycleOwner) {
             when (it) {
-                SHOW_MUSIC_LIBRARY -> if (childFragmentManager.backStackEntryCount > 0) {
+                MUSIC_LIBRARY_SHOW_PLAYLISTS -> if (childFragmentManager.backStackEntryCount > 0) {
                     childFragmentManager.popBackStack()
                 } else {
                     childFragmentManager.commit {
@@ -58,12 +60,14 @@ class MusicLibraryFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick 
     }
 
     override fun onBackPressed(): Boolean {
-        val currentFragment = childFragmentManager.findFragmentById(binding.fragmentContainerView.id)
-        if (currentFragment is IHandleBackPress && currentFragment.onBackPressed()) {
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is IHandleBackPress &&
+            currentFragment.onBackPressed()
+        ) {
             return true
         }
-        return if (mainActivityViewModel.showPlaylistId.value != SHOW_MUSIC_LIBRARY) {
-            mainActivityViewModel.setToShowPlaylist(SHOW_MUSIC_LIBRARY)
+        return if (mainActivityViewModel.showPlaylistId.value != MUSIC_LIBRARY_SHOW_PLAYLISTS) {
+            mainActivityViewModel.setToShowPlaylist(MUSIC_LIBRARY_SHOW_PLAYLISTS)
             true
         } else {
             false
@@ -71,8 +75,23 @@ class MusicLibraryFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick 
     }
 
     override fun onMenuItemClicked(menuItem: MenuItem): Boolean {
-        val currentFragment = childFragmentManager.findFragmentById(binding.fragmentContainerView.id)
-        if (currentFragment is IHandleMenuItemClick && currentFragment.onMenuItemClicked(menuItem)) {
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is IHandleMenuItemClick &&
+            currentFragment.onMenuItemClicked(menuItem)
+        ) {
+            return true
+        }
+        return false
+    }
+
+    private fun getCurrentFragment() =
+        childFragmentManager.findFragmentById(binding.fragmentContainerView.id)
+
+    override fun onFABClick(): Boolean {
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is IHandleFAB &&
+            currentFragment.onFABClick()
+        ) {
             return true
         }
         return false
