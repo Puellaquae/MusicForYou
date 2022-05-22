@@ -101,7 +101,7 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
                 TODO("Wait For Play Queue Designed And Implemented")
             }
             R.id.selection_add_to_playlist -> {
-                val pickPlaylistDialog = PickPlaylistDialog {
+                val pickPlaylistDialog = PickPlaylistDialog(currentPlaylistId) {
                     playlistViewModel.addSongsBySongIdToPlaylistWithPlaylistId(
                         it,
                         songAdapter.getSelection()

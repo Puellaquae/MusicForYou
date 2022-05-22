@@ -13,7 +13,14 @@ import puelloc.musicplayer.entity.PlaylistWithSongs
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 
-class PickPlaylistDialog(private val callBack: (playlistId: Long) -> Unit) : DialogFragment() {
+class PickPlaylistDialog(
+    private val excludePlaylistId: Long = NO_EXCLUDE_PLAYLIST_ID,
+    private val callBack: (playlistId: Long) -> Unit
+) : DialogFragment() {
+    companion object {
+        const val NO_EXCLUDE_PLAYLIST_ID = -1L
+    }
+
     private val playlistViewModel: PlaylistViewModel by activityViewModels()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -37,8 +44,12 @@ class PickPlaylistDialog(private val callBack: (playlistId: Long) -> Unit) : Dia
                 dismiss()
             }
             binding.playlistList.adapter = adapter
-            playlistViewModel.getAllNotFromFolderPlaylistsWithSongs().observe(this) {
-                adapter.submitList(it)
+            playlistViewModel.getAllNotFromFolderPlaylistsWithSongs().observe(this) { list ->
+                if (excludePlaylistId != NO_EXCLUDE_PLAYLIST_ID) {
+                    adapter.submitList(list.filter { it.playlist.playlistId != excludePlaylistId })
+                } else {
+                    adapter.submitList(list)
+                }
             }
             val dialog = MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.pick_playlist)

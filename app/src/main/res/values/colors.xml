@@ -3,4 +3,5 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="selected">#FFCCBEFF</color>
+    <color name="onSurface">?attr/colorOnSurface</color>
 </resources>

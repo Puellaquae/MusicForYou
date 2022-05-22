@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.DrawableRes
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -43,12 +44,25 @@ class ItemAdapter<T>(
                 root.background.setTint(Color.TRANSPARENT)
                 itemTitle.text = getItemTitle(item)
                 itemSubtitle.text = getItemSubtitle(item)
-                Glide
-                    .with(root)
-                    .load(getItemImage(item))
-                    .placeholder(defaultItemImage)
-                    .fallback(defaultItemImage)
-                    .into(itemImage)
+                val image = getItemImage(item)
+                if (image is Int) {
+                    // https://github.com/bumptech/glide/issues/3778
+                    Glide
+                        .with(root)
+                        .asDrawable()
+                        .load(ContextCompat.getDrawable(root.context, image))
+                        .placeholder(defaultItemImage)
+                        .fallback(defaultItemImage)
+                        .into(itemImage)
+                } else {
+                    Glide
+                        .with(root)
+                        .load(image)
+                        .theme(root.context.theme)
+                        .placeholder(defaultItemImage)
+                        .fallback(defaultItemImage)
+                        .into(itemImage)
+                }
                 root.setOnClickListener {
                     onClick(item)
                 }

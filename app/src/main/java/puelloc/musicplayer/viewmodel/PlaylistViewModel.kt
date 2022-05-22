@@ -28,6 +28,10 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
     fun getPlaylist(playlistId: Long): LiveData<Playlist> =
         playlistDao.getPlaylist(playlistId).asLiveData()
 
+    /**
+     * rebuild the playlist from folder and update the diff.
+     * The deleted song **won't** delete from existed playlist in this function, it has been done in [SongViewModel.loadSongsSync].
+     */
     fun buildPlaylistByDirSync() {
         data class Dir(
             val path: String,
@@ -70,8 +74,7 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
             dir.add(it)
         }
         val playlists = dir.buildPlaylist()
-        playlistDao.clearPlaylistsWhichBuiltFromFolder()
-        playlistDao.insertPlaylistsWithSons(playlists)
+        playlistDao.insertOrUpdatePlaylistsWithSonsFromFolderStable(playlists)
     }
 
     fun newPlaylist(name: String) {
@@ -106,7 +109,7 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
     fun addSongsBySongIdToPlaylistWithPlaylistId(playlistId: Long, songIds: List<Long>) {
         viewModelScope.launch(Dispatchers.IO) {
             songIds.forEach {
-                playlistDao.insertToRefPlaylistAndSong(
+                playlistDao.insertOrUpdateToRefPlaylistAndSong(
                     PlaylistSongCrossRef(playlistId, it)
                 )
             }

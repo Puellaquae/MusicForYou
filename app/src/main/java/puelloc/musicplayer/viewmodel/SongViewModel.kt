@@ -13,11 +13,15 @@ class SongViewModel(application: Application) : AndroidViewModel(application) {
     private val appDatabase =
         AppDatabase.getDatabase(getApplication<Application?>().applicationContext)
     private val songDao = appDatabase.songDao()
+    private val playlistDao = appDatabase.playlistDao()
 
     fun getSongs(): LiveData<List<Song>> = songDao.getAllSongs().asLiveData()
 
     fun getSong(songId: Long): LiveData<Song> = songDao.getSong(songId).asLiveData()
 
+    /**
+     * Load song and update the diff, also it will update the song in playlist
+     */
     fun loadSongsSync() {
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
@@ -57,8 +61,9 @@ class SongViewModel(application: Application) : AndroidViewModel(application) {
             cursor.close()
         }
 
-        songDao.clearAll()
-        songDao.insert(songsArray)
-        Log.d("SongViewModel@loadSongs", "post value")
+        val songsNeedDelete = songDao.selectNotExistedSongIdSync(songsArray.map { it.songId })
+        playlistDao.deleteSongs(songsNeedDelete)
+        songDao.deleteSongs(songsNeedDelete)
+        songDao.insertOrUpdate(songsArray)
     }
 }

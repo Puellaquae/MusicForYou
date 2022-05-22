@@ -62,12 +62,25 @@ class SelectableItemAdapter<T>(
                 } else {
                     root.background.setTint(Color.TRANSPARENT)
                 }
-                Glide
-                    .with(root)
-                    .load(getItemImage(item))
-                    .placeholder(defaultItemImage)
-                    .fallback(defaultItemImage)
-                    .into(itemImage)
+                val image = getItemImage(item)
+                if (image is Int) {
+                    // https://github.com/bumptech/glide/issues/3778
+                    Glide
+                        .with(root)
+                        .asDrawable()
+                        .load(ContextCompat.getDrawable(root.context, image))
+                        .placeholder(defaultItemImage)
+                        .fallback(defaultItemImage)
+                        .into(itemImage)
+                } else {
+                    Glide
+                        .with(root)
+                        .load(image)
+                        .theme(root.context.theme)
+                        .placeholder(defaultItemImage)
+                        .fallback(defaultItemImage)
+                        .into(itemImage)
+                }
                 root.setOnClickListener {
                     onClick(item)
                 }

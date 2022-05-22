@@ -23,6 +23,10 @@ abstract class PlaylistDao {
     abstract fun getAllPlaylistsWithSongs() : Flow<List<PlaylistWithSongs>>
 
     @Transaction
+    @Query("SELECT * FROM playlist")
+    abstract fun getAllPlaylistsWithSongsSync() : List<PlaylistWithSongs>
+
+    @Transaction
     @Query("SELECT * FROM playlist WHERE isFromFolder == 0")
     abstract fun getAllNotFromFolderPlaylistsWithSongs() : Flow<List<PlaylistWithSongs>>
 
@@ -33,16 +37,35 @@ abstract class PlaylistDao {
     abstract fun rowIdToPlaylistId(rowId: Long): Long
 
     @Insert(entity = PlaylistSongCrossRef::class, onConflict = OnConflictStrategy.REPLACE)
-    abstract fun insertToRefPlaylistAndSong(playlistSongCrossRef: PlaylistSongCrossRef)
+    abstract fun insertOrUpdateToRefPlaylistAndSong(playlistSongCrossRef: PlaylistSongCrossRef)
+
+    @Query("SELECT playlistId FROM Playlist WHERE name == :name AND isFromFolder == 1")
+    abstract fun getOldFolderPlaylistId(name: String): Long
 
     @Transaction
-    open fun insertPlaylistsWithSons(playlistsWithSongs: List<PlaylistWithSongs>) {
+    open fun insertOrUpdatePlaylistsWithSons(playlistsWithSongs: List<PlaylistWithSongs>) {
         playlistsWithSongs.forEach { playlistWithSongs ->
             val rowId = insert(playlistWithSongs.playlist)
             val playlistId = rowIdToPlaylistId(rowId)
             playlistWithSongs.songs.forEach { song ->
-                insertToRefPlaylistAndSong(PlaylistSongCrossRef(playlistId, song.songId))
+                insertOrUpdateToRefPlaylistAndSong(PlaylistSongCrossRef(playlistId, song.songId))
             }
+        }
+    }
+
+    @Transaction
+    open fun insertOrUpdatePlaylistsWithSonsFromFolderStable(playlistsWithSongs: List<PlaylistWithSongs>) {
+        playlistsWithSongs.forEach { playlistWithSongs ->
+            val playlistId = getOldFolderPlaylistId(playlistWithSongs.playlist.name)
+            playlistWithSongs.songs.forEach { song ->
+                insertOrUpdateToRefPlaylistAndSong(PlaylistSongCrossRef(playlistId, song.songId))
+            }
+        }
+    }
+
+    open fun clearEmptyFolderPlaylist() {
+        getAllPlaylistsWithSongsSync().filter { it.playlist.isFromFolder && it.songs.isEmpty() }.forEach {
+            deleteByPlaylistId(it.playlist.playlistId!!)
         }
     }
 
@@ -74,4 +97,7 @@ abstract class PlaylistDao {
 
     @Query("SELECT playlistId FROM playlist WHERE isFromFolder == 0 AND playlistId IN (:playlistIds)")
     abstract fun excludeFolderPlaylistIdSync(playlistIds: List<Long>): List<Long>
+
+    @Query("DELETE FROM PlaylistSongCrossRef WHERE songId IN (:songIds)")
+    abstract fun deleteSongs(songIds: List<Long>)
 }

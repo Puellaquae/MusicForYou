@@ -1,9 +1,6 @@
 package puelloc.musicplayer.dao
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
+import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 import puelloc.musicplayer.entity.Song
 
@@ -23,4 +20,13 @@ interface SongDao {
 
     @Insert
     fun insert(songs: List<Song>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertOrUpdate(songs: List<Song>)
+
+    @Query("SELECT songId FROM Song WHERE songId NOT IN (:songIds)")
+    fun selectNotExistedSongIdSync(songIds: List<Long>): List<Long>
+
+    @Query("DELETE FROM Song WHERE songId IN (:songIds)")
+    fun deleteSongs(songIds: List<Long>)
 }

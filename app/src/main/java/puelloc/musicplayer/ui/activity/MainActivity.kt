@@ -246,7 +246,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
     }
 
     private fun rebuildDatabase() {
-        if (false) {
+        if (true) {
             MainScope().launch(Dispatchers.IO) {
                 songViewModel.loadSongsSync()
                 playlistViewModel.buildPlaylistByDirSync()
