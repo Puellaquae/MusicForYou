@@ -18,4 +18,5 @@
     <string name="delete_selected_playlist">Delete Selected Playlist</string>
     <string name="pick_playlist">Pick Playlist</string>
     <string name="playlist_name">Playlist Name</string>
+    <string name="clear_playback_queue">Clear Playback Queue</string>
 </resources>

@@ -4,16 +4,23 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import puelloc.musicplayer.dao.PlaybackQueueDao
 import puelloc.musicplayer.dao.PlaylistDao
 import puelloc.musicplayer.dao.SongDao
+import puelloc.musicplayer.entity.PlaybackQueueItem
 import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
 import puelloc.musicplayer.entity.Song
 
-@Database(entities = [Song::class, Playlist::class, PlaylistSongCrossRef::class], version = 1, exportSchema = false)
+@Database(
+    entities = [Song::class, Playlist::class, PlaylistSongCrossRef::class, PlaybackQueueItem::class],
+    version = 1,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
     abstract fun songDao(): SongDao
+    abstract fun playbackQueueDao(): PlaybackQueueDao
 
     companion object {
         @Volatile

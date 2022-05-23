@@ -1,5 +1,6 @@
 package puelloc.musicplayer.service
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,6 +13,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.media.session.MediaButtonReceiver
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
@@ -49,7 +51,7 @@ class MediaNotificationManager(
         )
     )
     private var playAction: NotificationCompat.Action = NotificationCompat.Action(
-        R.drawable.ic_baseline_play_arrow_24,
+        R.drawable.ic_baseline_play_arrow_32,
         service.getString(R.string.play),
         MediaButtonReceiver.buildMediaButtonPendingIntent(
             service,
@@ -57,7 +59,7 @@ class MediaNotificationManager(
         )
     )
     private var pauseAction: NotificationCompat.Action = NotificationCompat.Action(
-        R.drawable.ic_baseline_pause_24,
+        R.drawable.ic_baseline_pause_32,
         service.getString(R.string.pause),
         MediaButtonReceiver.buildMediaButtonPendingIntent(
             service,
@@ -112,16 +114,28 @@ class MediaNotificationManager(
             setContentTitle(song.name)
             setContentText(song.artistName)
         }
+
         Glide.with(service.applicationContext).asBitmap().load(AudioCover(song.path))
             .into(object : CustomTarget<Bitmap>() {
                 override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                     notificationBuilder.setLargeIcon(resource)
-                    service.startForeground(NOTIFICATION_ID, notificationBuilder.build())
+                    notify(notificationBuilder.build())
                 }
 
                 override fun onLoadCleared(placeholder: Drawable?) {
-                    service.startForeground(NOTIFICATION_ID, notificationBuilder.build())
+                    notify(notificationBuilder.build())
                 }
             })
+    }
+
+    private fun notify(
+        notification: Notification
+    ) {
+        val update = notificationManager.activeNotifications.any { it.id == NOTIFICATION_ID }
+        if (update) {
+            notificationManager.notify(NOTIFICATION_ID, notification)
+        } else {
+            service.startForeground(NOTIFICATION_ID, notification)
+        }
     }
 }

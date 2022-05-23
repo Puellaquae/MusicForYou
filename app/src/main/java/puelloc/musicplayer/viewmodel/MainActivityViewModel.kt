@@ -84,6 +84,9 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         currentFragmentRes.switchMap { res ->
             when (res) {
                 R.id.nav_musiclibrary -> getTopBarButtonAndMenuForMusicLibrary()
+                R.id.nav_song -> liveData {
+                    emit(null to R.menu.menu_playback_queue)
+                }
                 else -> liveData {
                     emit(null to null)
                 }

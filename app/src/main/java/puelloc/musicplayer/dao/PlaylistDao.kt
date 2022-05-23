@@ -1,5 +1,6 @@
 package puelloc.musicplayer.dao
 
+import android.util.Log
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 import puelloc.musicplayer.entity.Playlist
@@ -56,7 +57,11 @@ abstract class PlaylistDao {
     @Transaction
     open fun insertOrUpdatePlaylistsWithSonsFromFolderStable(playlistsWithSongs: List<PlaylistWithSongs>) {
         playlistsWithSongs.forEach { playlistWithSongs ->
-            val playlistId = getOldFolderPlaylistId(playlistWithSongs.playlist.name)
+            var playlistId = getOldFolderPlaylistId(playlistWithSongs.playlist.name)
+            if (playlistId == 0L) {
+                val rowId = insert(playlistWithSongs.playlist)
+                playlistId = rowIdToPlaylistId(rowId)
+            }
             playlistWithSongs.songs.forEach { song ->
                 insertOrUpdateToRefPlaylistAndSong(PlaylistSongCrossRef(playlistId, song.songId))
             }

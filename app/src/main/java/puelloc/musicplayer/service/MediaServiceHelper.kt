@@ -1,5 +1,6 @@
 package puelloc.musicplayer.service
 
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.support.v4.media.MediaBrowserCompat
@@ -14,14 +15,15 @@ abstract class MediaServiceHelper(private val context: Context) {
         private val TAG = MediaServiceHelper::class.java.simpleName
     }
 
-    private var mediaBrowser: MediaBrowserCompat? = null
+    private lateinit var mediaBrowser: MediaBrowserCompat
     private var mediaController: MediaControllerCompat? = null
     private val callbacks: MutableList<MediaControllerCompat.Callback> = ArrayList()
 
     private val mediaConnectionCallback = object : MediaBrowserCompat.ConnectionCallback() {
         override fun onConnected() {
             Log.d(TAG, "onConnected")
-            mediaController = MediaControllerCompat(context, mediaBrowser!!.sessionToken)
+            mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken)
+            MediaControllerCompat.setMediaController(context as Activity, mediaController)
             mediaController!!.registerCallback(mediaControllerCallback)
 
             mediaControllerCallback.onMetadataChanged(mediaController!!.metadata)
@@ -29,8 +31,7 @@ abstract class MediaServiceHelper(private val context: Context) {
 
             this@MediaServiceHelper.onConnected(mediaController!!)
 
-            mediaBrowser
-            mediaBrowser!!.subscribe(mediaBrowser!!.root, mediaBrowserSubscriptionCallback)
+            mediaBrowser.subscribe(mediaBrowser.root, mediaBrowserSubscriptionCallback)
         }
     }
 
@@ -63,35 +64,34 @@ abstract class MediaServiceHelper(private val context: Context) {
     protected fun getMediaController(): MediaControllerCompat = mediaController!!
 
     fun getTransportControls(): MediaControllerCompat.TransportControls {
-        if (mediaController == null) {
-            Log.w(TAG, "mediaController is null")
-        }
         if (mediaController!!.transportControls == null) {
             Log.w(TAG, "transportControls is null")
         }
         return mediaController!!.transportControls!!
     }
 
+    fun create() {
+        Log.d(TAG, "create")
+        mediaBrowser = MediaBrowserCompat(
+            context,
+            ComponentName(context, MediaPlaybackService::class.java),
+            mediaConnectionCallback,
+            null
+        )
+    }
+
     fun start() {
-        if (mediaBrowser == null) {
-            mediaBrowser = MediaBrowserCompat(
-                context,
-                ComponentName(context, MediaPlaybackService::class.java),
-                mediaConnectionCallback,
-                null
-            )
-            mediaBrowser!!.connect()
+        Log.d(TAG, "start")
+        if (!mediaBrowser.isConnected) {
+            mediaBrowser.connect()
         }
     }
 
     fun stop() {
-        if (mediaController != null) {
-            mediaController!!.unregisterCallback(mediaControllerCallback)
-            mediaController = null
-        }
-        if (mediaBrowser != null && mediaBrowser!!.isConnected) {
-            mediaBrowser!!.disconnect()
-            mediaBrowser = null
+        Log.d(TAG, "stop")
+        mediaController?.unregisterCallback(mediaControllerCallback)
+        if (mediaBrowser.isConnected) {
+            mediaBrowser.disconnect()
         }
         resetState()
     }
@@ -110,15 +110,6 @@ abstract class MediaServiceHelper(private val context: Context) {
 
     fun registerCallback(callback: MediaControllerCompat.Callback) {
         callbacks.add(callback)
-
-        mediaController?.apply {
-            metadata?.let {
-                callback.onMetadataChanged(it)
-            }
-            playbackState?.let {
-                callback.onPlaybackStateChanged(it)
-            }
-        }
     }
 
     private fun preformCallbacks(command: (callback: MediaControllerCompat.Callback) -> Unit) {

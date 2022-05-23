@@ -19,4 +19,5 @@
     <string name="delete_selected_playlist">删除所选歌单</string>
     <string name="pick_playlist">选择歌单</string>
     <string name="playlist_name">歌单名称</string>
+    <string name="clear_playback_queue">清除播放队列</string>
 </resources>

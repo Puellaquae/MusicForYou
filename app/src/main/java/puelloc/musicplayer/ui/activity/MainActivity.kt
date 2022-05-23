@@ -32,11 +32,10 @@ import puelloc.musicplayer.trait.IHandleMenuItemClick
 import puelloc.musicplayer.trait.IHandleNavigationReselect
 import puelloc.musicplayer.ui.fragment.ForYouFragment
 import puelloc.musicplayer.ui.fragment.MusicLibraryFragment
-import puelloc.musicplayer.ui.fragment.SongFragment
+import puelloc.musicplayer.ui.fragment.PlaybackQueueFragment
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
-import puelloc.musicplayer.viewmodel.service.MediaPlayState
 
 class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
     IHandleNavigationReselect {
@@ -45,14 +44,13 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
     private val songViewModel: SongViewModel by viewModels()
     private val playlistViewModel: PlaylistViewModel by viewModels()
     private val mainActivityViewModel: MainActivityViewModel by viewModels()
-    private val mediaPlayState = MediaPlayState.getInstance()
 
     companion object {
         private val TAG = MainActivity::class.java.simpleName
 
         val FRAGMENTS = listOf(
             { ForYouFragment() } to R.id.nav_for_you,
-            { SongFragment() } to R.id.nav_song,
+            { PlaybackQueueFragment() } to R.id.nav_song,
             { MusicLibraryFragment() } to R.id.nav_musiclibrary,
         )
 
@@ -67,6 +65,9 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
 
         val MENU_ID_TO_FRAGMENT_INDEX =
             FRAGMENTS.mapIndexed { index, pair -> pair.second to index }.toMap()
+
+        val FRAGMENT_INDEX_TO_MENU_ID =
+            FRAGMENTS.mapIndexed { index, pair -> index to pair.second }.toMap()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,11 +112,8 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
                 Log.d(TAG, "onDisconnected")
             }
         }
+        mediaServiceHelper.create()
         mediaServiceHelper.registerCallback(controllerCallback)
-
-        mediaPlayState.registerSongListener {
-            mediaServiceHelper.getTransportControls().play()
-        }
     }
 
     override fun onStart() {
@@ -160,7 +158,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
             }
 
             viewPager.apply {
-                isUserInputEnabled = false
+                // isUserInputEnabled = false
 
                 adapter = object : FragmentStateAdapter(this@MainActivity) {
                     override fun getItemCount(): Int = FRAGMENTS.size
@@ -175,6 +173,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
                     override fun onPageSelected(position: Int) {
                         super.onPageSelected(position)
                         binding.bottomNavigation.menu.getItem(position).isChecked = true
+                        mainActivityViewModel.setCurrentFragmentRes(FRAGMENT_INDEX_TO_MENU_ID[position]!!)
                     }
                 })
             }

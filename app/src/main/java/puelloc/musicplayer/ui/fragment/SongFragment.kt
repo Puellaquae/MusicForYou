@@ -17,9 +17,9 @@ import puelloc.musicplayer.trait.IHandleBackPress
 import puelloc.musicplayer.trait.IHandleMenuItemClick
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
+import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
-import puelloc.musicplayer.viewmodel.service.MediaPlayState
 import kotlin.properties.Delegates
 
 class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
@@ -40,8 +40,8 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
     private var currentPlaylistId by Delegates.notNull<Long>()
     private val songViewModel: SongViewModel by activityViewModels()
     private val playlistViewModel: PlaylistViewModel by activityViewModels()
+    private val playbackQueueViewModel: PlaybackQueueViewModel by activityViewModels()
     private val mainActivityViewModel: MainActivityViewModel by activityViewModels()
-    private val mediaPlayState = MediaPlayState.getInstance()
     private lateinit var songAdapter: SelectableItemAdapter<Song>
 
     override fun onCreateView(
@@ -62,7 +62,7 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
             { AudioCover(it.path) },
             R.drawable.ic_baseline_music_note_24
         ) {
-            mediaPlayState.song = it
+            TODO("Save current playback queue, play queue start with the song")
         }
         currentPlaylistId =
             arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, SHOW_PLAY_QUEUE) ?: SHOW_PLAY_QUEUE
@@ -98,7 +98,9 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
                 true
             }
             R.id.selection_add_to_play_queue -> {
-                TODO("Wait For Play Queue Designed And Implemented")
+                playbackQueueViewModel.appendSongs(songAdapter.getSelection())
+                songAdapter.clearSelection()
+                true
             }
             R.id.selection_add_to_playlist -> {
                 val pickPlaylistDialog = PickPlaylistDialog(currentPlaylistId) {

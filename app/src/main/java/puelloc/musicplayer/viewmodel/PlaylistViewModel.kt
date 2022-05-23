@@ -40,7 +40,6 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
         ) {
             fun add(song: Song) {
                 val paths = song.path.split('/').dropLast(1)
-                Log.d("SongPath", "$paths")
                 var curDir = this
                 for (path in paths) {
                     curDir = curDir.subDirs.getOrPut(path) { Dir(path, ArrayList(), HashMap()) }

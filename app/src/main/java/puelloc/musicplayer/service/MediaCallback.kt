@@ -6,12 +6,12 @@ import android.util.Log
 
 class MediaCallback(private val mediaPlaybackService: MediaPlaybackService) : MediaSessionCompat.Callback() {
     companion object {
-        private val TAG = MediaCallback::class.java.simpleName
+        private val TAG = this::class.java.declaringClass.simpleName
     }
 
     override fun onPlay() {
         super.onPlay()
-        mediaPlaybackService.play()
+        mediaPlaybackService.play(true)
         Log.d(TAG, "Play")
     }
 
@@ -23,17 +23,26 @@ class MediaCallback(private val mediaPlaybackService: MediaPlaybackService) : Me
 
     override fun onStop() {
         super.onStop()
+        mediaPlaybackService.stop()
         Log.d(TAG, "Stop")
     }
 
     override fun onSkipToNext() {
         super.onSkipToNext()
+        mediaPlaybackService.skipToNext()
         Log.d(TAG, "SkipToNext")
     }
 
     override fun onSkipToPrevious() {
         super.onSkipToPrevious()
+        mediaPlaybackService.skipToPrevious()
         Log.d(TAG, "SkipToPrevious")
+    }
+
+    override fun onSeekTo(pos: Long) {
+        super.onSeekTo(pos)
+        mediaPlaybackService.seekTo(pos)
+        Log.d(TAG, "SeekTo $pos")
     }
 
     override fun onMediaButtonEvent(mediaButtonEvent: Intent?): Boolean {
