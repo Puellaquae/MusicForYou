@@ -1,6 +1,9 @@
 package puelloc.musicplayer.ui.fragment
 
+import android.app.Application
+import android.location.Location
 import android.os.Bundle
+import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -16,10 +19,13 @@ import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.trait.IHandleBackPress
 import puelloc.musicplayer.trait.IHandleMenuItemClick
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog
+import puelloc.musicplayer.ui.dialog.PickPlaylistDialog.Companion.PICK_PLAYLIST_DIALOG_TAG
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
+import java.time.LocalDateTime
+import java.util.*
 import kotlin.properties.Delegates
 
 class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
@@ -27,7 +33,6 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
     companion object {
         const val PLAYLIST_ID_BUNDLE_KEY = "playlistId"
         const val SHOW_PLAY_QUEUE = -1L
-        const val PICK_PLAYLIST_DIALOG_TAG = "pick playlist dialog tag"
         private val TAG = SongFragment::class.java.simpleName
     }
 
@@ -40,7 +45,7 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
     private var currentPlaylistId by Delegates.notNull<Long>()
     private val songViewModel: SongViewModel by activityViewModels()
     private val playlistViewModel: PlaylistViewModel by activityViewModels()
-    private val playbackQueueViewModel: PlaybackQueueViewModel by activityViewModels()
+    private lateinit var playbackQueueViewModel: PlaybackQueueViewModel
     private val mainActivityViewModel: MainActivityViewModel by activityViewModels()
     private lateinit var songAdapter: SelectableItemAdapter<Song>
 
@@ -54,6 +59,8 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        playbackQueueViewModel =
+            PlaybackQueueViewModel.getInstance(requireContext().applicationContext as Application)
         songAdapter = SelectableItemAdapter(
             binding.musicList,
             { it.songId },
@@ -61,8 +68,11 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
             { it.artistName },
             { AudioCover(it.path) },
             R.drawable.ic_baseline_music_note_24
-        ) {
-            TODO("Save current playback queue, play queue start with the song")
+        ) { song ->
+            playbackQueueViewModel.saveToPlaylistThanSwitchToPlayPlaylist(
+                songAdapter.currentList.map { it.songId },
+                song.songId
+            )
         }
         currentPlaylistId =
             arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, SHOW_PLAY_QUEUE) ?: SHOW_PLAY_QUEUE

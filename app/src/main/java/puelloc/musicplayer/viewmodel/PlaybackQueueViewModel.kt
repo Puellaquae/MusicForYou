@@ -7,6 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import puelloc.musicplayer.db.AppDatabase
+import puelloc.musicplayer.entity.Playlist
+import puelloc.musicplayer.entity.PlaylistSongCrossRef
 
 class PlaybackQueueViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
@@ -26,6 +28,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
     private val appDatabase =
         AppDatabase.getDatabase(getApplication<Application?>().applicationContext)
     private val playbackQueueDao = appDatabase.playbackQueueDao()
+    private val playlistDao = appDatabase.playlistDao()
 
     val playbackQueueWithSong = playbackQueueDao.getPlaybackQueue().asLiveData()
 
@@ -102,6 +105,50 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
     fun clearQueue() {
         viewModelScope.launch(Dispatchers.IO) {
             playbackQueueDao.clearQueue()
+        }
+    }
+
+    fun saveToPlaylist(playlistId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            saveToPlaylistSync(playlistId)
+        }
+    }
+
+    private fun saveToPlaylistSync(playlistId: Long) {
+        val queue = playbackQueueDao.getPlaybackQueueSync()
+        queue.forEach {
+            playlistDao.insertOrUpdateToRefPlaylistAndSong(
+                PlaylistSongCrossRef(
+                    playlistId,
+                    it.song.songId
+                )
+            )
+        }
+    }
+
+    private fun playSongIdSync(songId: Long) {
+        val item = playbackQueueDao.getPlaybackQueueSync().firstOrNull {
+            it.song.songId == songId
+        }
+        if (item != null) {
+            currentItemId.postValue(item.queueItem.itemId)
+        }
+    }
+
+    /**
+     * Auto save current playback queue if not empty
+     */
+    fun saveToPlaylistThanSwitchToPlayPlaylist(songIds: List<Long>, songId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (playbackQueueDao.size() != 0) {
+                val playlistId =
+                    playlistDao.rowIdToPlaylistId(playlistDao.insert(Playlist(name = "AutoSave")))
+                saveToPlaylistSync(playlistId)
+                playbackQueueDao.clearQueue()
+                playbackQueueDao.append(songIds)
+                playable.postValue(true)
+                playSongIdSync(songId)
+            }
         }
     }
 

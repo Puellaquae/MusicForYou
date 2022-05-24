@@ -128,7 +128,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                 )
             }.build())
             val metadata = it.getMetadataBuilde()
-            Glide.with(this)
+            Glide.with(this.applicationContext)
                 .asBitmap()
                 .load(AudioCover(it.path))
                 .into(object : CustomTarget<Bitmap>() {
@@ -143,8 +143,12 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                     override fun onLoadCleared(placeholder: Drawable?) {
                         mediaSession.setMetadata(metadata.build())
                     }
+
+                    override fun onLoadFailed(errorDrawable: Drawable?) {
+                        mediaSession.setMetadata(metadata.build())
+                    }
                 })
-            mediaNotificationManager.showNotification(it, false)
+            mediaNotificationManager.updateSong(it)
         }
     }
 
@@ -167,12 +171,12 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                     1F
                 )
             }.build())
-            mediaNotificationManager.showNotification(it, true)
+            mediaNotificationManager.updatePlay(true)
         }
     }
 
     fun stop() {
-        prepareSong?.let { mediaNotificationManager.showNotification(it, false) }
+        prepareSong?.let { mediaNotificationManager.updatePlay(false) }
         prepareSong = null
         playbackQueueViewModel.playable.postValue(false)
         mediaPlayer.stop()
@@ -199,7 +203,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                     1F
                 )
             }.build())
-            mediaNotificationManager.showNotification(prepareSong!!, false)
+            mediaNotificationManager.updatePlay(false)
         }
     }
 
@@ -220,10 +224,26 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     }
 
     fun skipToNext() {
+        mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
+            setActions(PLAYBACK_ACTION)
+            setState(
+                PlaybackStateCompat.STATE_SKIPPING_TO_NEXT,
+                0L,
+                1F
+            )
+        }.build())
         playbackQueueViewModel.nextSong()
     }
 
     fun skipToPrevious() {
+        mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
+            setActions(PLAYBACK_ACTION)
+            setState(
+                PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS,
+                0L,
+                1F
+            )
+        }.build())
         playbackQueueViewModel.previousSong()
     }
 }

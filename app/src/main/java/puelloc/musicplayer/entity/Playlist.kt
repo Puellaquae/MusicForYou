@@ -4,7 +4,7 @@ import androidx.room.*
 import org.jetbrains.annotations.NotNull
 import puelloc.musicplayer.trait.Equatable
 
-@Entity
+@Entity(indices = [Index("playlistId")])
 data class Playlist(
     @NotNull
     @PrimaryKey(autoGenerate = true) val playlistId: Long? = null,

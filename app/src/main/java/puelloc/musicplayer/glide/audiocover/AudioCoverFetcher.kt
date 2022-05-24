@@ -19,6 +19,8 @@ class AudioCoverFetcher(private val model: AudioCover) : DataFetcher<InputStream
             if (picture != null) {
                 stream = ByteArrayInputStream(picture)
                 callback.onDataReady(stream)
+            } else {
+                callback.onDataReady(null)
             }
         } catch (e: FileNotFoundException) {
             callback.onLoadFailed(e)

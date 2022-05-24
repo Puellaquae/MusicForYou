@@ -150,6 +150,10 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
                     if (MENU_ID_TO_FRAGMENT_INDEX.containsKey(it.itemId)) {
                         it.setIcon(BOTTOM_NAVIGATION_ICON[it.itemId]!!.second)
                         mainActivityViewModel.setCurrentFragmentRes(it.itemId)
+                        viewPager.setCurrentItem(
+                            MENU_ID_TO_FRAGMENT_INDEX[it.itemId]!!,
+                            true
+                        )
                         true
                     } else {
                         false
@@ -172,8 +176,8 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
                 registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
                     override fun onPageSelected(position: Int) {
                         super.onPageSelected(position)
-                        binding.bottomNavigation.menu.getItem(position).isChecked = true
-                        mainActivityViewModel.setCurrentFragmentRes(FRAGMENT_INDEX_TO_MENU_ID[position]!!)
+                        val id = FRAGMENT_INDEX_TO_MENU_ID[position]!!
+                        binding.bottomNavigation.selectedItemId = id
                     }
                 })
             }
@@ -197,13 +201,6 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
             mainActivityViewModel.currentTitle.observe(this@MainActivity) {
                 toolbar.title = it.first
                 toolbar.subtitle = it.second
-            }
-
-            mainActivityViewModel.currentFragmentRes.observe(this@MainActivity) {
-                val idx = MENU_ID_TO_FRAGMENT_INDEX[it]
-                if (idx != null) {
-                    viewPager.setCurrentItem(idx, true)
-                }
             }
 
             mainActivityViewModel.currentTopBarButtonAndMenu.observe(this@MainActivity) {

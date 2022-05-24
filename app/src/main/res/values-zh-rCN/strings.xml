@@ -20,4 +20,6 @@
     <string name="pick_playlist">选择歌单</string>
     <string name="playlist_name">歌单名称</string>
     <string name="clear_playback_queue">清除播放队列</string>
+    <string name="save_to_playlist">保存到歌单</string>
+    <string name="build_time">编译时间：%s</string>
 </resources>

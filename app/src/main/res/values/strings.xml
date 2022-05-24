@@ -19,4 +19,6 @@
     <string name="pick_playlist">Pick Playlist</string>
     <string name="playlist_name">Playlist Name</string>
     <string name="clear_playback_queue">Clear Playback Queue</string>
+    <string name="save_to_playlist">Save To Playlist</string>
+    <string name="build_time">Build Time: %s</string>
 </resources>

@@ -13,14 +13,11 @@ import puelloc.musicplayer.databinding.FragmentPlaybackQueueBinding
 import puelloc.musicplayer.entity.PlaybackQueueItemWithSong
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.trait.IHandleMenuItemClick
+import puelloc.musicplayer.ui.dialog.PickPlaylistDialog
+import puelloc.musicplayer.ui.dialog.PickPlaylistDialog.Companion.PICK_PLAYLIST_DIALOG_TAG
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 
 class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
-
-    companion object {
-        private const val NEW_PLAYLIST_DIALOG_TAG = "new playlist dialog tag"
-    }
-
     private var _binding: FragmentPlaybackQueueBinding? = null
     private var binding: FragmentPlaybackQueueBinding
         get() = _binding!!
@@ -62,6 +59,16 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
         return when (menuItem.itemId) {
             R.id.menu_clear_playback_queue -> {
                 playbackQueueViewModel.clearQueue()
+                true
+            }
+            R.id.menu_save_to_playlist -> {
+                val pickPlaylistDialog = PickPlaylistDialog {
+                    playbackQueueViewModel.saveToPlaylist(it)
+                }
+                pickPlaylistDialog.show(
+                    parentFragmentManager,
+                    PICK_PLAYLIST_DIALOG_TAG
+                )
                 true
             }
             else -> false

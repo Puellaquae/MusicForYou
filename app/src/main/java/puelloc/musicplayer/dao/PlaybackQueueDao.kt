@@ -14,6 +14,10 @@ abstract class PlaybackQueueDao {
     @Query("SELECT * FROM PlaybackQueue ORDER BY `order`")
     abstract fun getPlaybackQueue(): Flow<List<PlaybackQueueItemWithSong>>
 
+    @Transaction
+    @Query("SELECT * FROM PlaybackQueue ORDER BY `order`")
+    abstract fun getPlaybackQueueSync(): List<PlaybackQueueItemWithSong>
+
     @Query("SELECT * FROM PlaybackQueue ORDER BY `order` DESC LIMIT 1")
     abstract fun lastItemSync(): PlaybackQueueItem?
 
@@ -65,7 +69,6 @@ abstract class PlaybackQueueDao {
     @Insert
     abstract fun insert(playbackQueueItem: PlaybackQueueItem)
 
-    @Transaction
     open fun append(songIds: List<Long>) {
         val lastOrder = lastItemSync()?.order?.plus(PlaybackQueueItem.ORDER_STEP) ?: 0L
         songIds.forEachIndexed { index, id ->
@@ -75,4 +78,7 @@ abstract class PlaybackQueueDao {
 
     @Query("DELETE FROM PlaybackQueue")
     abstract fun clearQueue()
+
+    @Query("SELECT COUNT(*) FROM PlaybackQueue")
+    abstract fun size(): Int
 }

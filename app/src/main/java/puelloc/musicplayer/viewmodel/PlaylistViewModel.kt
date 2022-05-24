@@ -1,6 +1,7 @@
 package puelloc.musicplayer.viewmodel
 
 import android.app.Application
+import android.text.format.DateFormat
 import android.util.Log
 import androidx.lifecycle.*
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +12,9 @@ import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
 import puelloc.musicplayer.entity.PlaylistWithSongs
 import puelloc.musicplayer.entity.Song
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class PlaylistViewModel(application: Application) : AndroidViewModel(application) {
     private val appDatabase =
@@ -83,12 +87,13 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun newPlaylistAndGetPlaylistId(name: String): LiveData<Long> =
+    fun newPlaylistAndGetPlaylistId(name: String? = null): LiveData<Long> =
         liveData {
+            val playlistName = name ?: "AutoSave"
             emit(withContext(viewModelScope.coroutineContext + Dispatchers.IO) {
                 playlistDao.rowIdToPlaylistId(
                     playlistDao.insert(
-                        Playlist(name = name)
+                        Playlist(name = playlistName)
                     )
                 )
             })
