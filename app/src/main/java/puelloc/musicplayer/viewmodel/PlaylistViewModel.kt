@@ -1,9 +1,10 @@
 package puelloc.musicplayer.viewmodel
 
 import android.app.Application
-import android.text.format.DateFormat
-import android.util.Log
-import androidx.lifecycle.*
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.liveData
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -12,25 +13,22 @@ import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
 import puelloc.musicplayer.entity.PlaylistWithSongs
 import puelloc.musicplayer.entity.Song
-import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 class PlaylistViewModel(application: Application) : AndroidViewModel(application) {
     private val appDatabase =
         AppDatabase.getDatabase(getApplication<Application?>().applicationContext)
     private val playlistDao = appDatabase.playlistDao()
 
-    val playlists: LiveData<List<Playlist>> = playlistDao.getAllPlaylist().asLiveData()
+    val playlists: LiveData<List<Playlist>> = playlistDao.getAllPlaylist()
 
     val playlistsWithSongs: LiveData<List<PlaylistWithSongs>> =
-        playlistDao.getAllPlaylistsWithSongs().asLiveData()
+        playlistDao.getAllPlaylistsWithSongs()
 
     fun getPlaylistWithSong(playlistId: Long): LiveData<PlaylistWithSongs> =
-        playlistDao.getPlaylistWithSongs(playlistId).asLiveData()
+        playlistDao.getPlaylistWithSongs(playlistId)
 
     fun getPlaylist(playlistId: Long): LiveData<Playlist> =
-        playlistDao.getPlaylist(playlistId).asLiveData()
+        playlistDao.getPlaylist(playlistId)
 
     /**
      * rebuild the playlist from folder and update the diff.
@@ -78,6 +76,7 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
         }
         val playlists = dir.buildPlaylist()
         playlistDao.insertOrUpdatePlaylistsWithSonsFromFolderStable(playlists)
+        playlistDao.clearEmptyFolderPlaylist()
     }
 
     fun newPlaylist(name: String) {
@@ -108,7 +107,7 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun getAllNotFromFolderPlaylistsWithSongs() =
-        playlistDao.getAllNotFromFolderPlaylistsWithSongs().asLiveData()
+        playlistDao.getAllNotFromFolderPlaylistsWithSongs()
 
     fun addSongsBySongIdToPlaylistWithPlaylistId(playlistId: Long, songIds: List<Long>) {
         viewModelScope.launch(Dispatchers.IO) {

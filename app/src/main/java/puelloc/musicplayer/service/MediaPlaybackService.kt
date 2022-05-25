@@ -181,6 +181,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         playbackQueueViewModel.playable.postValue(false)
         mediaPlayer.stop()
         mediaPlayer.reset()
+        mediaPlayer.release()
         mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
             setActions(PLAYBACK_ACTION)
             setState(
@@ -189,6 +190,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                 1F
             )
         }.build())
+        mediaNotificationManager.stop()
+        stopSelf()
     }
 
     fun pause() {

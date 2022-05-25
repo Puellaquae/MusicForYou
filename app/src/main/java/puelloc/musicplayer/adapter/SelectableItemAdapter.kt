@@ -1,92 +1,24 @@
 package puelloc.musicplayer.adapter
 
-import android.graphics.Color
-import android.util.Log
-import android.view.LayoutInflater
 import android.view.MotionEvent
-import android.view.ViewGroup
 import androidx.annotation.DrawableRes
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.selection.ItemDetailsLookup
 import androidx.recyclerview.selection.ItemKeyProvider
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.selection.StorageStrategy
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import puelloc.musicplayer.R
-import puelloc.musicplayer.databinding.ItemItemBinding
 import puelloc.musicplayer.trait.Equatable
 
 class SelectableItemAdapter<T>(
     recyclerView: RecyclerView,
-    private val getItemId: (item: T) -> Long,
-    private val getItemTitle: (item: T) -> String,
-    private val getItemSubtitle: (item: T) -> String,
-    private val getItemImage: (item: T) -> Any,
-    @DrawableRes private val defaultItemImage: Int,
-    private val onClick: (item: T) -> Unit
+    getItemId: (item: T) -> Long,
+    getItemTitle: (item: T) -> String,
+    getItemSubtitle: (item: T) -> String,
+    getItemImage: (item: T) -> Any,
+    @DrawableRes defaultItemImage: Int,
+    onClick: (item: T) -> Unit
 ) :
-    ListAdapter<T, SelectableItemAdapter<T>.ViewHolder>(object :
-        DiffUtil.ItemCallback<T>() {
-        override fun areItemsTheSame(
-            oldItem: T,
-            newItem: T
-        ): Boolean =
-            getItemId(oldItem) == getItemId(newItem)
-
-        override fun areContentsTheSame(
-            oldItem: T,
-            newItem: T
-        ): Boolean =
-            oldItem.hashCode() == newItem.hashCode()
-    }) where T : Any, T : Equatable {
-
-    companion object {
-        private val TAG = SelectableItemAdapter::class.java.simpleName
-    }
-
-    inner class ViewHolder(
-        private val itemBinding: ItemItemBinding
-    ) :
-        RecyclerView.ViewHolder(itemBinding.root) {
-        fun bind(item: T, selected: Boolean) {
-            itemBinding.apply {
-                itemTitle.text = getItemTitle(item)
-                itemSubtitle.text = getItemSubtitle(item)
-                if (selected) {
-                    root.background.setTint(
-                        ContextCompat.getColor(root.context, R.color.selected)
-                    )
-                } else {
-                    root.background.setTint(Color.TRANSPARENT)
-                }
-                val image = getItemImage(item)
-                if (image is Int) {
-                    // https://github.com/bumptech/glide/issues/3778
-                    Glide
-                        .with(root)
-                        .asDrawable()
-                        .load(ContextCompat.getDrawable(root.context, image))
-                        .placeholder(defaultItemImage)
-                        .fallback(defaultItemImage)
-                        .into(itemImage)
-                } else {
-                    Glide
-                        .with(root)
-                        .load(image)
-                        .theme(root.context.theme)
-                        .placeholder(defaultItemImage)
-                        .fallback(defaultItemImage)
-                        .into(itemImage)
-                }
-                root.setOnClickListener {
-                    onClick(item)
-                }
-            }
-        }
-    }
+    ItemAdapter<T>(getItemId, getItemTitle, getItemSubtitle, getItemImage, defaultItemImage, onClick) where T : Any, T : Equatable {
 
     private val selectionTracker: SelectionTracker<Long>
 
@@ -110,7 +42,7 @@ class SelectableItemAdapter<T>(
                     val childView = recyclerView.findChildViewUnder(e.x, e.y)
                     if (childView != null) {
                         val viewHolder = recyclerView.getChildViewHolder(childView)
-                        if (viewHolder is SelectableItemAdapter<*>.ViewHolder) {
+                        if (viewHolder is ItemAdapter<*>.ViewHolder) {
                             return object : ItemDetails<Long>() {
                                 override fun getPosition(): Int {
                                     return viewHolder.bindingAdapterPosition
@@ -129,23 +61,9 @@ class SelectableItemAdapter<T>(
         ).build()
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        return ViewHolder(
-            ItemItemBinding.inflate(
-                LayoutInflater.from(parent.context),
-                parent,
-                false
-            )
-        )
-    }
-
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
         holder.bind(item, selectionTracker.isSelected(getItemId(item)))
-    }
-
-    override fun getItemId(position: Int): Long {
-        return getItemId(getItem(position))
     }
 
     fun clearSelection() {

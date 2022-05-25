@@ -1,10 +1,10 @@
 package puelloc.musicplayer.dao
 
+import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
-import kotlinx.coroutines.flow.Flow
 import puelloc.musicplayer.entity.PlaybackQueueItem
 import puelloc.musicplayer.entity.PlaybackQueueItemWithSong
 
@@ -12,7 +12,7 @@ import puelloc.musicplayer.entity.PlaybackQueueItemWithSong
 abstract class PlaybackQueueDao {
     @Transaction
     @Query("SELECT * FROM PlaybackQueue ORDER BY `order`")
-    abstract fun getPlaybackQueue(): Flow<List<PlaybackQueueItemWithSong>>
+    abstract fun getPlaybackQueue(): LiveData<List<PlaybackQueueItemWithSong>>
 
     @Transaction
     @Query("SELECT * FROM PlaybackQueue ORDER BY `order`")
@@ -40,25 +40,25 @@ abstract class PlaybackQueueDao {
     abstract fun getSongSync(playbackQueueItemId: Long): PlaybackQueueItemWithSong?
 
     @Query("SELECT * FROM PlaybackQueue ORDER BY `order` DESC LIMIT 1")
-    abstract fun lastItem(): Flow<PlaybackQueueItem?>
+    abstract fun lastItem(): LiveData<PlaybackQueueItem?>
 
     @Query("SELECT * FROM PlaybackQueue ORDER BY `order` LIMIT 1")
-    abstract fun firstItem(): Flow<PlaybackQueueItem?>
+    abstract fun firstItem(): LiveData<PlaybackQueueItem?>
 
     @Query("SELECT * FROM PlaybackQueue WHERE itemId == :playbackQueueItemId")
-    abstract fun getItem(playbackQueueItemId: Long): Flow<PlaybackQueueItem?>
+    abstract fun getItem(playbackQueueItemId: Long): LiveData<PlaybackQueueItem?>
 
     @Transaction
     @Query("SELECT * FROM PlaybackQueue ORDER BY `order` DESC LIMIT 1")
-    abstract fun lastSong(): Flow<PlaybackQueueItemWithSong?>
+    abstract fun lastSong(): LiveData<PlaybackQueueItemWithSong?>
 
     @Transaction
     @Query("SELECT * FROM PlaybackQueue ORDER BY `order` LIMIT 1")
-    abstract fun firstSong(): Flow<PlaybackQueueItemWithSong?>
+    abstract fun firstSong(): LiveData<PlaybackQueueItemWithSong?>
 
     @Transaction
     @Query("SELECT * FROM PlaybackQueue WHERE itemId == :playbackQueueItemId")
-    abstract fun getSong(playbackQueueItemId: Long): Flow<PlaybackQueueItemWithSong?>
+    abstract fun getSong(playbackQueueItemId: Long): LiveData<PlaybackQueueItemWithSong?>
 
     @Query("SELECT * FROM PlaybackQueue WHERE `order` > :order ORDER BY `order` LIMIT 1")
     abstract fun nextItemByOrder(order: Long): PlaybackQueueItem?

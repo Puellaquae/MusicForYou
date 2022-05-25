@@ -2,7 +2,6 @@
 
 ## TODO
 
-- 解决 Service 没有被绑定会自己 Destroy 的问题（既如果启动应用，播放音乐，当回到主屏幕，此时 MainActivity 进入 onStop 状态，断开与服务的连接，且其他程序会系统没有连接服务，服务会触发 Destroy。）
 - 为播放队列拖拽调整顺序功能
 - 为播放队列设计删除功能
 - 解决歌单中歌曲顺序不按添加顺序显示的问题
@@ -12,6 +11,13 @@
 - 了解蓝牙的使用
 - 为应用设计播放控制
 - 添加设置功能及其页面
+
+## DONE
+
+- 将 DAO 的 Flow 改为 LiveData
+- 为播放队列添加显示当前播放歌曲的功能
+- 将 SelectableItemAdapter 改为继承自 ItemAdapter
+- 解决 Service 没有被绑定会自己 Destroy 的问题（既如果启动应用，播放音乐，当回到主屏幕，此时 MainActivity 进入 onStop 状态，断开与服务的连接，且其他程序会系统没有连接服务，服务会触发 Destroy。）
 
 ## Some Ideas
 

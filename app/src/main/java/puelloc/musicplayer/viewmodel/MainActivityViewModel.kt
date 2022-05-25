@@ -65,7 +65,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         }
 
     private fun getTitleForShowPlaylist(playlistId: Long): LiveData<Pair<String, String>> =
-        playlistDao.getPlaylistWithSongs(playlistId).asLiveData()
+        playlistDao.getPlaylistWithSongs(playlistId)
             .switchMap {
                 playlistSongsSelectionSize.map { size ->
                     if (size == 0) {
@@ -103,7 +103,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
                         R.drawable.ic_baseline_close_24 to R.menu.music_playlists_selection
                     }
                 }
-                else -> playlistDao.getPlaylist(playlistId).asLiveData()
+                else -> playlistDao.getPlaylist(playlistId)
                     .switchMap { playlist ->
                         playlistSongsSelectionSize.map { size ->
                             if (size == 0) {

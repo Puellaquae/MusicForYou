@@ -175,4 +175,8 @@ class MediaNotificationManager(
             }
         }
     }
+
+    fun stop() {
+        service.stopForeground(true)
+    }
 }

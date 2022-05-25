@@ -1,7 +1,7 @@
 package puelloc.musicplayer.dao
 
+import androidx.lifecycle.LiveData
 import androidx.room.*
-import kotlinx.coroutines.flow.Flow
 import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
 import puelloc.musicplayer.entity.PlaylistWithSongs
@@ -9,18 +9,18 @@ import puelloc.musicplayer.entity.PlaylistWithSongs
 @Dao
 abstract class PlaylistDao {
     @Query("SELECT * FROM playlist")
-    abstract fun getAllPlaylist() : Flow<List<Playlist>>
+    abstract fun getAllPlaylist() : LiveData<List<Playlist>>
 
     @Query("SELECT * FROM playlist where playlistId == :playlistId")
-    abstract fun getPlaylist(playlistId: Long) : Flow<Playlist>
+    abstract fun getPlaylist(playlistId: Long) : LiveData<Playlist>
 
     @Transaction
     @Query("SELECT * FROM playlist where playlistId == :playlistId")
-    abstract fun getPlaylistWithSongs(playlistId: Long) : Flow<PlaylistWithSongs>
+    abstract fun getPlaylistWithSongs(playlistId: Long) : LiveData<PlaylistWithSongs>
 
     @Transaction
     @Query("SELECT * FROM playlist")
-    abstract fun getAllPlaylistsWithSongs() : Flow<List<PlaylistWithSongs>>
+    abstract fun getAllPlaylistsWithSongs() : LiveData<List<PlaylistWithSongs>>
 
     @Transaction
     @Query("SELECT * FROM playlist")
@@ -28,7 +28,7 @@ abstract class PlaylistDao {
 
     @Transaction
     @Query("SELECT * FROM playlist WHERE isFromFolder == 0")
-    abstract fun getAllNotFromFolderPlaylistsWithSongs() : Flow<List<PlaylistWithSongs>>
+    abstract fun getAllNotFromFolderPlaylistsWithSongs() : LiveData<List<PlaylistWithSongs>>
 
     @Insert
     abstract fun insert(playlist: Playlist): Long
@@ -53,7 +53,6 @@ abstract class PlaylistDao {
         }
     }
 
-    @Transaction
     open fun insertOrUpdatePlaylistsWithSonsFromFolderStable(playlistsWithSongs: List<PlaylistWithSongs>) {
         playlistsWithSongs.forEach { playlistWithSongs ->
             var playlistId = getOldFolderPlaylistId(playlistWithSongs.playlist.name)

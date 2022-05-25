@@ -2,10 +2,8 @@ package puelloc.musicplayer.viewmodel
 
 import android.app.Application
 import android.provider.MediaStore
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.asLiveData
 import puelloc.musicplayer.db.AppDatabase
 import puelloc.musicplayer.entity.Song
 
@@ -15,9 +13,9 @@ class SongViewModel(application: Application) : AndroidViewModel(application) {
     private val songDao = appDatabase.songDao()
     private val playlistDao = appDatabase.playlistDao()
 
-    fun getSongs(): LiveData<List<Song>> = songDao.getAllSongs().asLiveData()
+    fun getSongs(): LiveData<List<Song>> = songDao.getAllSongs()
 
-    fun getSong(songId: Long): LiveData<Song> = songDao.getSong(songId).asLiveData()
+    fun getSong(songId: Long): LiveData<Song> = songDao.getSong(songId)
 
     /**
      * Load song and update the diff, also it will update the song in playlist

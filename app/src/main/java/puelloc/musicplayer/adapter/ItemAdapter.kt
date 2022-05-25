@@ -9,10 +9,11 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ItemItemBinding
 import puelloc.musicplayer.trait.Equatable
 
-class ItemAdapter<T>(
+open class ItemAdapter<T>(
     val getItemId: (item: T) -> Long,
     val getItemTitle: (item: T) -> String,
     val getItemSubtitle: (item: T) -> String,
@@ -39,9 +40,15 @@ class ItemAdapter<T>(
         private val itemBinding: ItemItemBinding
     ) :
         RecyclerView.ViewHolder(itemBinding.root) {
-        fun bind(item: T) {
+        fun bind(item: T, isHighlight: Boolean = false) {
             itemBinding.apply {
-                root.background.setTint(Color.TRANSPARENT)
+                if (isHighlight) {
+                    root.background.setTint(
+                        ContextCompat.getColor(root.context, R.color.selected)
+                    )
+                } else {
+                    root.background.setTint(Color.TRANSPARENT)
+                }
                 itemTitle.text = getItemTitle(item)
                 itemSubtitle.text = getItemSubtitle(item)
                 val image = getItemImage(item)

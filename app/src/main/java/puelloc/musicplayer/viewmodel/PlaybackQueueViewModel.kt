@@ -30,7 +30,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
     private val playbackQueueDao = appDatabase.playbackQueueDao()
     private val playlistDao = appDatabase.playlistDao()
 
-    val playbackQueueWithSong = playbackQueueDao.getPlaybackQueue().asLiveData()
+    val playbackQueueWithSong = playbackQueueDao.getPlaybackQueue()
 
     fun appendSongs(songIds: List<Long>) {
         viewModelScope.launch(Dispatchers.IO) {
