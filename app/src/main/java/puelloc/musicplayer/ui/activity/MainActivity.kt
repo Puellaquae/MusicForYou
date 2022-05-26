@@ -1,5 +1,6 @@
 package puelloc.musicplayer.ui.activity
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
@@ -25,6 +26,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ActivityMainBinding
+import puelloc.musicplayer.service.MediaPlaybackService
 import puelloc.musicplayer.service.MediaServiceHelper
 import puelloc.musicplayer.trait.IHandleBackPress
 import puelloc.musicplayer.trait.IHandleFAB
@@ -95,6 +97,8 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
         } else {
             rebuildDatabase()
         }
+
+        startService(Intent(this, MediaPlaybackService::class.java))
 
         mediaServiceHelper = object : MediaServiceHelper(this@MainActivity) {
             override fun onConnected(mediaController: MediaControllerCompat) {
@@ -183,6 +187,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
             }
 
             viewPager.post {
+                viewPager.setCurrentItem(MENU_ID_TO_FRAGMENT_INDEX[R.id.nav_song]!!, false)
                 bottomNavigation.selectedItemId = R.id.nav_song
             }
 

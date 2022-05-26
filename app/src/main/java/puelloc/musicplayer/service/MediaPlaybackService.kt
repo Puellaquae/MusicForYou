@@ -1,8 +1,12 @@
 package puelloc.musicplayer.service
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
@@ -27,6 +31,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     private lateinit var mediaNotificationManager: MediaNotificationManager
     private lateinit var playbackQueueViewModel: PlaybackQueueViewModel
     private lateinit var mediaPlayer: MediaPlayer
+    private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+    private val noisyAudioStreamReceiver = BecomingNoisyReceiver()
     private val currentSongObserver = Observer<Song?> {
         Log.d(TAG, "${it?.name} playable: ${playbackQueueViewModel.playable.value}")
         if (it != null) {
@@ -115,7 +121,6 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     private fun prepare() {
         prepareSong = playbackQueueViewModel.currentSong.value
         prepareSong?.let {
-            mediaPlayer.stop()
             mediaPlayer.reset()
             mediaPlayer.setDataSource(it.path)
             mediaPlayer.prepare()
@@ -161,6 +166,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             skipToNext()
         }
         prepareSong?.let {
+            registerReceiver(noisyAudioStreamReceiver, intentFilter)
             playbackQueueViewModel.playable.postValue(true)
             mediaPlayer.start()
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
@@ -179,9 +185,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         prepareSong?.let { mediaNotificationManager.updatePlay(false) }
         prepareSong = null
         playbackQueueViewModel.playable.postValue(false)
-        mediaPlayer.stop()
         mediaPlayer.reset()
-        mediaPlayer.release()
+        unregisterReceiver(noisyAudioStreamReceiver)
         mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
             setActions(PLAYBACK_ACTION)
             setState(
@@ -248,5 +253,13 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             )
         }.build())
         playbackQueueViewModel.previousSong()
+    }
+
+    inner class BecomingNoisyReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                pause()
+            }
+        }
     }
 }

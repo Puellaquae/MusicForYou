@@ -22,4 +22,6 @@
     <string name="clear_playback_queue">清除播放队列</string>
     <string name="save_to_playlist">保存到歌单</string>
     <string name="build_time">编译时间：%s</string>
+    <string name="fast_link">快速连接</string>
+    <string name="wait_for_nfc">请使用NFC贴贴</string>
 </resources>

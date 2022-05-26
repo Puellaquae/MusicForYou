@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import puelloc.musicplayer.BuildConfig
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.FragmentForYouBinding
+import puelloc.musicplayer.ui.dialog.NFCDialog
 import java.util.*
 
 class ForYouFragment : Fragment() {
@@ -30,5 +31,8 @@ class ForYouFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.textView.text =
             getString(R.string.build_time, Date(BuildConfig.BUILD_TIME.toLong()).toString())
+        binding.button.setOnClickListener {
+            NFCDialog().show(parentFragmentManager, "NFC Dialog")
+        }
     }
 }

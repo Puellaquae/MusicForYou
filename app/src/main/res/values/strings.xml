@@ -21,4 +21,6 @@
     <string name="clear_playback_queue">Clear Playback Queue</string>
     <string name="save_to_playlist">Save To Playlist</string>
     <string name="build_time">Build Time: %s</string>
+    <string name="fast_link">Fast Link</string>
+    <string name="wait_for_nfc">Wait For NFC Tap</string>
 </resources>
