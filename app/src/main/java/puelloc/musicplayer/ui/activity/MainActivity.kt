@@ -186,10 +186,10 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
                 })
             }
 
-            viewPager.post {
+            // viewPager.post {
                 viewPager.setCurrentItem(MENU_ID_TO_FRAGMENT_INDEX[R.id.nav_song]!!, false)
                 bottomNavigation.selectedItemId = R.id.nav_song
-            }
+            // }
 
             toolbar.setNavigationOnClickListener {
                 onBackPressed()

@@ -138,17 +138,17 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
     /**
      * Auto save current playback queue if not empty
      */
-    fun saveToPlaylistThanSwitchToPlayPlaylist(songIds: List<Long>, songId: Long) {
+    fun playPlaylist(songIds: List<Long>, songId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             if (playbackQueueDao.size() != 0) {
                 val playlistId =
                     playlistDao.rowIdToPlaylistId(playlistDao.insert(Playlist(name = "AutoSave")))
                 saveToPlaylistSync(playlistId)
                 playbackQueueDao.clearQueue()
-                playbackQueueDao.append(songIds)
-                playable.postValue(true)
-                playSongIdSync(songId)
             }
+            playbackQueueDao.append(songIds)
+            playable.postValue(true)
+            playSongIdSync(songId)
         }
     }
 

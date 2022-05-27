@@ -108,7 +108,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
                         playlistSongsSelectionSize.map { size ->
                             if (size == 0) {
                                 R.drawable.ic_baseline_arrow_back_24 to if (playlist.isFromFolder) {
-                                    null
+                                    R.menu.playlist_folder
                                 } else {
                                     R.menu.playlist
                                 }

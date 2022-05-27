@@ -1,9 +1,8 @@
 package puelloc.musicplayer.ui.fragment
 
 import android.app.Application
-import android.location.Location
 import android.os.Bundle
-import android.text.format.DateFormat
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -24,7 +23,6 @@ import puelloc.musicplayer.viewmodel.MainActivityViewModel
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
-import java.time.LocalDateTime
 import java.util.*
 import kotlin.properties.Delegates
 
@@ -32,7 +30,7 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
 
     companion object {
         const val PLAYLIST_ID_BUNDLE_KEY = "playlistId"
-        const val SHOW_PLAY_QUEUE = -1L
+        const val UNREACHABLE = -1L
         private val TAG = SongFragment::class.java.simpleName
     }
 
@@ -69,17 +67,15 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
             { AudioCover(it.path) },
             R.drawable.ic_baseline_music_note_24
         ) { song ->
-            playbackQueueViewModel.saveToPlaylistThanSwitchToPlayPlaylist(
+            playbackQueueViewModel.playPlaylist(
                 songAdapter.currentList.map { it.songId },
                 song.songId
             )
         }
         currentPlaylistId =
-            arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, SHOW_PLAY_QUEUE) ?: SHOW_PLAY_QUEUE
-        if (currentPlaylistId == SHOW_PLAY_QUEUE) {
-            songViewModel.getSongs().observe(viewLifecycleOwner) {
-                songAdapter.submitList(it)
-            }
+            arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, UNREACHABLE) ?: UNREACHABLE
+        if (currentPlaylistId == UNREACHABLE) {
+            throw IllegalStateException()
         } else {
             playlistViewModel.getPlaylistWithSong(currentPlaylistId).observe(viewLifecycleOwner) {
                 songAdapter.submitList(it.songs)
@@ -103,13 +99,15 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
 
     override fun onMenuItemClicked(menuItem: MenuItem): Boolean {
         return when (menuItem.itemId) {
-            R.id.selection_select_all -> {
+            R.id.menu_select_all, R.id.selection_select_all -> {
                 binding.musicList.post { songAdapter.selectAll() }
                 true
             }
             R.id.selection_add_to_play_queue -> {
-                playbackQueueViewModel.appendSongs(songAdapter.getSelection())
-                songAdapter.clearSelection()
+                binding.musicList.post {
+                    playbackQueueViewModel.appendSongs(songAdapter.getSelection())
+                    songAdapter.clearSelection()
+                }
                 true
             }
             R.id.selection_add_to_playlist -> {
@@ -127,11 +125,13 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
                 true
             }
             R.id.selection_remove_from_playlist -> {
-                playlistViewModel.removeSongsBySongIdFromPlaylistWithPlaylistId(
-                    currentPlaylistId,
-                    songAdapter.getSelection()
-                )
-                songAdapter.clearSelection()
+                binding.musicList.post {
+                    playlistViewModel.removeSongsBySongIdFromPlaylistWithPlaylistId(
+                        currentPlaylistId,
+                        songAdapter.getSelection()
+                    )
+                    songAdapter.clearSelection()
+                }
                 true
             }
             else -> false
