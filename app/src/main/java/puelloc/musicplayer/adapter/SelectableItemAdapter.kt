@@ -9,6 +9,9 @@ import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.RecyclerView
 import puelloc.musicplayer.trait.Equatable
 
+/**
+ * this will auto set adapter to recyclerView
+ */
 class SelectableItemAdapter<T>(
     recyclerView: RecyclerView,
     getItemId: (item: T) -> Long,
@@ -18,7 +21,14 @@ class SelectableItemAdapter<T>(
     @DrawableRes defaultItemImage: Int,
     onClick: (item: T) -> Unit
 ) :
-    ItemAdapter<T>(getItemId, getItemTitle, getItemSubtitle, getItemImage, defaultItemImage, onClick) where T : Any, T : Equatable {
+    ItemAdapter<T>(
+        getItemId,
+        getItemTitle,
+        getItemSubtitle,
+        getItemImage,
+        defaultItemImage,
+        onClick
+    ) where T : Any, T : Equatable {
 
     private val selectionTracker: SelectionTracker<Long>
 

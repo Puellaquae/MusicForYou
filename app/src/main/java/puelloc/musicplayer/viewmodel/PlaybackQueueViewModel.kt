@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import puelloc.musicplayer.db.AppDatabase
+import puelloc.musicplayer.entity.PlaybackQueueItem
 import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
 
@@ -147,7 +148,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                 playbackQueueDao.clearQueue()
             }
             playbackQueueDao.append(songIds)
-            playable.postValue(true)
+            playing.postValue(true)
             playSongIdSync(songId)
         }
     }
@@ -165,5 +166,17 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    val playable = MutableLiveData<Boolean>()
+    val playing = MutableLiveData<Boolean>()
+
+    fun moveItemAndInsert(item: PlaybackQueueItem, positionOrder: Long, insertBefore: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (insertBefore) {
+                playbackQueueDao.moveRangeDown(positionOrder, item.order, 1)
+                playbackQueueDao.updateOrder(item.itemId!!, positionOrder)
+            } else {
+                playbackQueueDao.moveRangeUp(item.order, positionOrder, 1)
+                playbackQueueDao.updateOrder(item.itemId!!, positionOrder)
+            }
+        }
+    }
 }

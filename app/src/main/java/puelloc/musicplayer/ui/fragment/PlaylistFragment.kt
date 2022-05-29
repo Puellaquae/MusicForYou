@@ -11,7 +11,7 @@ import androidx.recyclerview.selection.SelectionTracker
 import puelloc.musicplayer.R
 import puelloc.musicplayer.adapter.SelectableItemAdapter
 import puelloc.musicplayer.databinding.FragmentPlaylistBinding
-import puelloc.musicplayer.entity.PlaylistWithSongs
+import puelloc.musicplayer.pojo.relation.PlaylistWithSongs
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.trait.IHandleBackPress
 import puelloc.musicplayer.trait.IHandleFAB

@@ -24,4 +24,7 @@
     <string name="build_time">编译时间：%s</string>
     <string name="fast_link">快速连接</string>
     <string name="wait_for_nfc">请使用NFC贴贴</string>
+    <string name="song_diff">新增%2$d首歌，%1$d首歌被移除</string>
+    <string name="song_addition">新增%d首歌</string>
+    <string name="song_deletion">%d首歌被移除</string>
 </resources>

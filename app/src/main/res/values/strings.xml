@@ -23,4 +23,7 @@
     <string name="build_time">Build Time: %s</string>
     <string name="fast_link">Fast Link</string>
     <string name="wait_for_nfc">Wait For NFC Tap</string>
+    <string name="song_diff">%1$d songs removed, %2$d songs added</string>
+    <string name="song_addition">%d songs added</string>
+    <string name="song_deletion">%d songs removed</string>
 </resources>

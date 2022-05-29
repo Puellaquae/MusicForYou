@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 import puelloc.musicplayer.db.AppDatabase
 import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
-import puelloc.musicplayer.entity.PlaylistWithSongs
+import puelloc.musicplayer.pojo.relation.PlaylistWithSongs
 import puelloc.musicplayer.entity.Song
 
 class PlaylistViewModel(application: Application) : AndroidViewModel(application) {
@@ -20,6 +20,7 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
     private val playlistDao = appDatabase.playlistDao()
 
     val playlists: LiveData<List<Playlist>> = playlistDao.getAllPlaylist()
+    val playlistSongCrossRefs: LiveData<List<PlaylistSongCrossRef>> = playlistDao.getAllPlaylistSongCrossRefs()
 
     val playlistsWithSongs: LiveData<List<PlaylistWithSongs>> =
         playlistDao.getAllPlaylistsWithSongs()

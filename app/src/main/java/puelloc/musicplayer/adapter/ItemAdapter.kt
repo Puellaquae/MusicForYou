@@ -5,8 +5,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import puelloc.musicplayer.R
@@ -14,27 +12,14 @@ import puelloc.musicplayer.databinding.ItemItemBinding
 import puelloc.musicplayer.trait.Equatable
 
 open class ItemAdapter<T>(
-    val getItemId: (item: T) -> Long,
+    getItemId: (item: T) -> Long,
     val getItemTitle: (item: T) -> String,
     val getItemSubtitle: (item: T) -> String,
     val getItemImage: (item: T) -> Any,
     @DrawableRes val defaultItemImage: Int,
     private val onClick: (item: T) -> Unit
 ) :
-    ListAdapter<T, ItemAdapter<T>.ViewHolder>(object :
-        DiffUtil.ItemCallback<T>() {
-        override fun areItemsTheSame(
-            oldItem: T,
-            newItem: T
-        ): Boolean =
-            getItemId(oldItem) == getItemId(newItem)
-
-        override fun areContentsTheSame(
-            oldItem: T,
-            newItem: T
-        ): Boolean =
-            oldItem.hashCode() == newItem.hashCode()
-    }) where T : Any, T : Equatable {
+    AsyncListAdapter<T, ItemAdapter<T>.ViewHolder>(getItemId) where T : Any, T : Equatable {
 
     inner class ViewHolder(
         private val itemBinding: ItemItemBinding

@@ -2,8 +2,11 @@ package puelloc.musicplayer.viewmodel
 
 import android.app.Application
 import android.provider.MediaStore
+import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import puelloc.musicplayer.R
 import puelloc.musicplayer.db.AppDatabase
 import puelloc.musicplayer.entity.Song
 
@@ -60,8 +63,36 @@ class SongViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val songsNeedDelete = songDao.selectNotExistedSongIdSync(songsArray.map { it.songId })
+        val deletedSongCount = songsNeedDelete.size
+        val newSongCount = songsArray.size - songDao.count() + deletedSongCount
         playlistDao.deleteSongs(songsNeedDelete)
         songDao.deleteSongs(songsNeedDelete)
         songDao.insertOrUpdate(songsArray)
+        val context = getApplication<Application?>().applicationContext
+        if (deletedSongCount != 0 && newSongCount != 0) {
+            ContextCompat.getMainExecutor(context).execute {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.song_diff, deletedSongCount, newSongCount),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } else if (deletedSongCount != 0) {
+            ContextCompat.getMainExecutor(context).execute {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.song_deletion, deletedSongCount),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } else if (newSongCount != 0) {
+            ContextCompat.getMainExecutor(context).execute {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.song_addition, newSongCount),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 }

@@ -1,12 +1,9 @@
 package puelloc.musicplayer.dao
 
 import androidx.lifecycle.LiveData
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.Query
-import androidx.room.Transaction
+import androidx.room.*
 import puelloc.musicplayer.entity.PlaybackQueueItem
-import puelloc.musicplayer.entity.PlaybackQueueItemWithSong
+import puelloc.musicplayer.pojo.relation.PlaybackQueueItemWithSong
 
 @Dao
 abstract class PlaybackQueueDao {
@@ -70,9 +67,14 @@ abstract class PlaybackQueueDao {
     abstract fun insert(playbackQueueItem: PlaybackQueueItem)
 
     open fun append(songIds: List<Long>) {
-        val lastOrder = lastItemSync()?.order?.plus(PlaybackQueueItem.ORDER_STEP) ?: 0L
+        val lastOrder = (lastItemSync()?.order ?: 0L) + PlaybackQueueItem.ORDER_STEP
         songIds.forEachIndexed { index, id ->
-            insert(PlaybackQueueItem(songId = id, order = lastOrder + PlaybackQueueItem.ORDER_STEP * index))
+            insert(
+                PlaybackQueueItem(
+                    songId = id,
+                    order = lastOrder + PlaybackQueueItem.ORDER_STEP * index
+                )
+            )
         }
     }
 
@@ -81,4 +83,19 @@ abstract class PlaybackQueueDao {
 
     @Query("SELECT COUNT(*) FROM PlaybackQueue")
     abstract fun size(): Int
+
+    /**
+     * sub step for each [start, end]
+     */
+    @Query("UPDATE PlaybackQueue SET `order` = `order` - :step WHERE `order` >= :startOrder AND `order` <= :endOrder")
+    abstract fun moveRangeUp(startOrder: Long, endOrder: Long, step: Long)
+
+    /**
+     * add step for each [start, end]
+     */
+    @Query("UPDATE PlaybackQueue SET `order` = `order` + :step WHERE `order` >= :startOrder AND `order` <= :endOrder")
+    abstract fun moveRangeDown(startOrder: Long, endOrder: Long, step: Long)
+
+    @Query("UPDATE PlaybackQueue SET `order` = :newOrder WHERE itemId == :itemId")
+    abstract fun updateOrder(itemId: Long, newOrder: Long)
 }

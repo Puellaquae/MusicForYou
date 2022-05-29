@@ -18,6 +18,9 @@ interface SongDao {
     @Query("DELETE FROM Song")
     fun clearAll()
 
+    @Query("SELECT COUNT(*) FROM Song")
+    fun count(): Int
+
     @Insert
     fun insert(songs: List<Song>)
 

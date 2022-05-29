@@ -34,11 +34,21 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
     private val noisyAudioStreamReceiver = BecomingNoisyReceiver()
     private val currentSongObserver = Observer<Song?> {
-        Log.d(TAG, "${it?.name} playable: ${playbackQueueViewModel.playable.value}")
+        Log.d(TAG, "${it?.name} playing: ${playbackQueueViewModel.playing.value}")
         if (it != null) {
-            prepare()
-            if (playbackQueueViewModel.playable.value == true) {
-                play()
+            if (it == prepareSong) {
+                if (mediaPlayer.isPlaying) {
+                    playbackQueueViewModel.playing.postValue(false)
+                    pause()
+                } else {
+                    playbackQueueViewModel.playing.postValue(true)
+                    play()
+                }
+            } else {
+                prepare()
+                if (playbackQueueViewModel.playing.value == true) {
+                    play()
+                }
             }
         }
     }
@@ -162,12 +172,12 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             prepare()
         }
         if (prepareSong == null && nextSongIfNeed) {
-            playbackQueueViewModel.playable.postValue(true)
+            playbackQueueViewModel.playing.postValue(true)
             skipToNext()
         }
         prepareSong?.let {
             registerReceiver(noisyAudioStreamReceiver, intentFilter)
-            playbackQueueViewModel.playable.postValue(true)
+            playbackQueueViewModel.playing.postValue(true)
             mediaPlayer.start()
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
                 setActions(PLAYBACK_ACTION)
@@ -184,7 +194,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     fun stop() {
         prepareSong?.let { mediaNotificationManager.updatePlay(false) }
         prepareSong = null
-        playbackQueueViewModel.playable.postValue(false)
+        playbackQueueViewModel.playing.postValue(false)
         mediaPlayer.reset()
         unregisterReceiver(noisyAudioStreamReceiver)
         mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
@@ -202,7 +212,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     fun pause() {
         if (mediaPlayer.isPlaying) {
             mediaPlayer.pause()
-            playbackQueueViewModel.playable.postValue(false)
+            playbackQueueViewModel.playing.postValue(false)
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
                 setActions(PLAYBACK_ACTION)
                 setState(

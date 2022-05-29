@@ -4,36 +4,39 @@ import androidx.lifecycle.LiveData
 import androidx.room.*
 import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
-import puelloc.musicplayer.entity.PlaylistWithSongs
+import puelloc.musicplayer.pojo.relation.PlaylistWithSongs
 
 @Dao
 abstract class PlaylistDao {
-    @Query("SELECT * FROM playlist")
+    @Query("SELECT * FROM Playlist")
     abstract fun getAllPlaylist() : LiveData<List<Playlist>>
 
-    @Query("SELECT * FROM playlist where playlistId == :playlistId")
+    @Query("SELECT * FROM PlaylistSongCrossRef")
+    abstract fun getAllPlaylistSongCrossRefs() : LiveData<List<PlaylistSongCrossRef>>
+
+    @Query("SELECT * FROM Playlist where playlistId == :playlistId")
     abstract fun getPlaylist(playlistId: Long) : LiveData<Playlist>
 
     @Transaction
-    @Query("SELECT * FROM playlist where playlistId == :playlistId")
+    @Query("SELECT * FROM Playlist where playlistId == :playlistId")
     abstract fun getPlaylistWithSongs(playlistId: Long) : LiveData<PlaylistWithSongs>
 
     @Transaction
-    @Query("SELECT * FROM playlist")
+    @Query("SELECT * FROM Playlist")
     abstract fun getAllPlaylistsWithSongs() : LiveData<List<PlaylistWithSongs>>
 
     @Transaction
-    @Query("SELECT * FROM playlist")
+    @Query("SELECT * FROM Playlist")
     abstract fun getAllPlaylistsWithSongsSync() : List<PlaylistWithSongs>
 
     @Transaction
-    @Query("SELECT * FROM playlist WHERE isFromFolder == 0")
+    @Query("SELECT * FROM Playlist WHERE isFromFolder == 0")
     abstract fun getAllNotFromFolderPlaylistsWithSongs() : LiveData<List<PlaylistWithSongs>>
 
     @Insert
     abstract fun insert(playlist: Playlist): Long
 
-    @Query("SELECT playlistId FROM playlist WHERE rowid == :rowId")
+    @Query("SELECT playlistId FROM Playlist WHERE rowid == :rowId")
     abstract fun rowIdToPlaylistId(rowId: Long): Long
 
     @Insert(entity = PlaylistSongCrossRef::class, onConflict = OnConflictStrategy.REPLACE)
@@ -72,13 +75,13 @@ abstract class PlaylistDao {
         }
     }
 
-    @Query("SELECT * FROM playlist WHERE isFromFolder == 1")
+    @Query("SELECT * FROM Playlist WHERE isFromFolder == 1")
     abstract fun getPlaylistsWhichBuiltFromFolder(): List<Playlist>
 
-    @Query("DELETE FROM playlistsongcrossref WHERE playlistId == :playlistId")
+    @Query("DELETE FROM PlaylistSongCrossRef WHERE playlistId == :playlistId")
     abstract fun deleteToDeRefAllSongsOfPlaylist(playlistId: Long)
 
-    @Query("DELETE FROM playlistsongcrossref WHERE playlistId == :playlistId AND songId == :songId")
+    @Query("DELETE FROM PlaylistSongCrossRef WHERE playlistId == :playlistId AND songId == :songId")
     abstract fun removeSongFromPlaylist(playlistId: Long, songId: Long)
 
     @Delete
@@ -87,7 +90,7 @@ abstract class PlaylistDao {
     /**
      * This won't delete the link between playlist and song, so call [deleteToDeRefAllSongsOfPlaylist] first.
      */
-    @Query("DELETE FROM playlist WHERE playlistId == :playlistId")
+    @Query("DELETE FROM Playlist WHERE playlistId == :playlistId")
     abstract fun deleteByPlaylistId(playlistId: Long)
 
     @Transaction
@@ -98,7 +101,7 @@ abstract class PlaylistDao {
         }
     }
 
-    @Query("SELECT playlistId FROM playlist WHERE isFromFolder == 0 AND playlistId IN (:playlistIds)")
+    @Query("SELECT playlistId FROM Playlist WHERE isFromFolder == 0 AND playlistId IN (:playlistIds)")
     abstract fun excludeFolderPlaylistIdSync(playlistIds: List<Long>): List<Long>
 
     @Query("DELETE FROM PlaylistSongCrossRef WHERE songId IN (:songIds)")

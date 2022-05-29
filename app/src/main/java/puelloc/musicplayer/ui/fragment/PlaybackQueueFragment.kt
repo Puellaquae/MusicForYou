@@ -9,10 +9,10 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import puelloc.musicplayer.R
 import puelloc.musicplayer.adapter.ItemAdapter
+import puelloc.musicplayer.adapter.ReorderableItemAdapter
 import puelloc.musicplayer.databinding.FragmentPlaybackQueueBinding
-import puelloc.musicplayer.entity.PlaybackQueueItemWithSong
-import puelloc.musicplayer.entity.Song
 import puelloc.musicplayer.glide.audiocover.AudioCover
+import puelloc.musicplayer.pojo.relation.PlaybackQueueItemWithSong
 import puelloc.musicplayer.trait.IHandleMenuItemClick
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog.Companion.PICK_PLAYLIST_DIALOG_TAG
@@ -28,7 +28,6 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
     private lateinit var playbackQueueAdapter: ItemAdapter<PlaybackQueueItemWithSong>
     private lateinit var playbackQueueViewModel: PlaybackQueueViewModel
     private var lastPlayItemId: Long = -1L
-    private var lastPosition: Int = -1
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -42,14 +41,15 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
         super.onViewCreated(view, savedInstanceState)
         playbackQueueViewModel =
             PlaybackQueueViewModel.getInstance(requireContext().applicationContext as Application)
-        playbackQueueAdapter = object : ItemAdapter<PlaybackQueueItemWithSong>(
+        playbackQueueAdapter = object : ReorderableItemAdapter<PlaybackQueueItemWithSong>(
+            binding.playbackQueueList,
             { it.queueItem.itemId!! },
             { it.song.name },
             { it.song.artistName },
             { AudioCover(it.song.path) },
             R.drawable.ic_baseline_music_note_24,
             {
-                playbackQueueViewModel.playable.postValue(true)
+                playbackQueueViewModel.playing.postValue(true)
                 playbackQueueViewModel.currentItemId.postValue(it.queueItem.itemId)
             }
         ) {
@@ -66,12 +66,22 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
                 val item = getItem(position)
                 holder.bind(item, item.queueItem.itemId == lastPlayItemId)
             }
+
+            override fun swap(fromPosition: Int, toPosition: Int) {
+                val fromItem = getItem(fromPosition)
+                val toItem = getItem(toPosition)
+                playbackQueueViewModel.moveItemAndInsert(fromItem.queueItem, toItem.queueItem.order, fromPosition > toPosition)
+            }
         }
         binding.playbackQueueList.adapter = playbackQueueAdapter
         playbackQueueViewModel.playbackQueueWithSong.observe(viewLifecycleOwner) {
             playbackQueueAdapter.submitList(it)
         }
         playbackQueueViewModel.currentItemId.observe(viewLifecycleOwner) { itemId ->
+            val lastPosition =
+                playbackQueueAdapter.currentList.indexOfFirst {
+                    it.queueItem.itemId == lastPlayItemId
+                }
             lastPlayItemId = itemId
             val nextPosition =
                 playbackQueueAdapter.currentList.indexOfFirst { it.queueItem.itemId == itemId }
@@ -81,7 +91,6 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
             if (nextPosition != -1) {
                 playbackQueueAdapter.notifyItemChanged(nextPosition, true)
             }
-            lastPosition = nextPosition
         }
     }
 
