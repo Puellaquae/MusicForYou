@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.NFC" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-feature
         android:name="android.hardware.nfc"
@@ -63,6 +64,10 @@
                 android:name="android.nfc.cardemulation.host_apdu_service"
                 android:resource="@xml/apduservice" />
         </service>
+
+        <service
+            android:name=".service.AudioCaptureService"
+            android:foregroundServiceType="mediaProjection" />
 
         <receiver
             android:name="androidx.media.session.MediaButtonReceiver"

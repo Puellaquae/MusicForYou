@@ -10,8 +10,18 @@
         android:layout_height="wrap_content"
         android:text="@string/fast_link"
         app:icon="@drawable/ic_baseline_nfc_24"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/buttonCapture"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/buttonCapture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Audio Capture Test"
+        app:icon="@drawable/ic_baseline_mic_24"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/button"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
@@ -23,7 +33,7 @@
         app:layout_constraintTop_toBottomOf="@id/button" />
 
     <TextView
-        android:id="@+id/textView2"
+        android:id="@+id/rawDataLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Playqueue原始数据"
@@ -41,5 +51,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView2" />
+        app:layout_constraintTop_toBottomOf="@+id/rawDataLabel" />
 </androidx.constraintlayout.widget.ConstraintLayout>

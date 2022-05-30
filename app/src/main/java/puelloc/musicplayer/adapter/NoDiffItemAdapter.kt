@@ -9,17 +9,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ItemItemBinding
-import puelloc.musicplayer.trait.Equatable
 
-open class ItemAdapter<T>(
-    getItemId: (item: T) -> Long,
+open class NoDiffItemAdapter<T>(
     val getItemTitle: (item: T) -> String,
     val getItemSubtitle: (item: T) -> String,
     val getItemImage: (item: T) -> Any,
     @DrawableRes val defaultItemImage: Int,
+    val data: List<T>,
     private val onClick: (item: T) -> Unit
 ) :
-    AsyncDiffAdapter<T, ItemAdapter<T>.ViewHolder>(getItemId) where T : Any, T : Equatable {
+    RecyclerView.Adapter<NoDiffItemAdapter<T>.ViewHolder>() where T : Any {
 
     inner class ViewHolder(
         private val itemBinding: ItemItemBinding
@@ -73,11 +72,9 @@ open class ItemAdapter<T>(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = getItem(position)
+        val item = data[position]
         holder.bind(item)
     }
 
-    override fun getItemId(position: Int): Long {
-        return getItemId(getItem(position))
-    }
+    override fun getItemCount(): Int = data.size
 }
