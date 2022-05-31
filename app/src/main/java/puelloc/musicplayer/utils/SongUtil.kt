@@ -9,7 +9,7 @@ import puelloc.musicplayer.glide.audiocover.AudioCover
 
 class SongUtil {
     companion object {
-        fun Song.getMetadataBuilde() =
+        fun Song.getMetadataBuilder() =
             MediaMetadataCompat.Builder().apply {
                 putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, songId.toString())
                 putString(MediaMetadataCompat.METADATA_KEY_TITLE, name)

@@ -22,7 +22,7 @@ import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import puelloc.musicplayer.entity.Song
 import puelloc.musicplayer.glide.audiocover.AudioCover
-import puelloc.musicplayer.utils.SongUtil.Companion.getMetadataBuilde
+import puelloc.musicplayer.utils.SongUtil.Companion.getMetadataBuilder
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 
 class MediaPlaybackService : MediaBrowserServiceCompat() {
@@ -142,7 +142,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                     1F
                 )
             }.build())
-            val metadata = it.getMetadataBuilde()
+            val metadata = it.getMetadataBuilder()
             Glide.with(this.applicationContext)
                 .asBitmap()
                 .load(AudioCover(it.path))
