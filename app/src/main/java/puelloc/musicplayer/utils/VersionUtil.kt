@@ -7,5 +7,7 @@ class VersionUtil {
         val Q: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
         val O: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+
+        val S: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     }
 }
