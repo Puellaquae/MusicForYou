@@ -1,15 +1,14 @@
 package puelloc.musicplayer.ui.fragment
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -18,8 +17,6 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -27,11 +24,13 @@ import puelloc.musicplayer.BuildConfig
 import puelloc.musicplayer.R
 import puelloc.musicplayer.adapter.NoDiffItemAdapter
 import puelloc.musicplayer.databinding.FragmentForYouBinding
+import puelloc.musicplayer.service.AudioCaptureService
 import puelloc.musicplayer.ui.dialog.BluetoothClientDialog
 import puelloc.musicplayer.ui.dialog.BluetoothListenerDialog
 import puelloc.musicplayer.ui.dialog.NFCDialog
-import puelloc.musicplayer.ui.dialog.PlaybackCaptureDialog
+import puelloc.musicplayer.utils.PermissionUtil.Companion.needPermission
 import puelloc.musicplayer.utils.VersionUtil
+import puelloc.musicplayer.utils.VersionUtil.Companion.ANDROID_10
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import java.util.*
 
@@ -44,6 +43,7 @@ class ForYouFragment : Fragment() {
         }
 
     private lateinit var playbackQueueViewModel: PlaybackQueueViewModel
+    private var audioCapturing = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -55,7 +55,7 @@ class ForYouFragment : Fragment() {
         return binding.root
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @RequiresApi(ANDROID_10)
     inner class MyLifecycleObserver : DefaultLifecycleObserver {
         lateinit var getResult: ActivityResultLauncher<Intent>
         override fun onCreate(owner: LifecycleOwner) {
@@ -65,14 +65,20 @@ class ForYouFragment : Fragment() {
                 ActivityResultContracts.StartActivityForResult()
             ) {
                 if (it.resultCode == Activity.RESULT_OK) {
-                    PlaybackCaptureDialog(it.data!!).show(
-                        parentFragmentManager,
-                        "Playback Capture Dialog"
-                    )
+                    audioCapturing = true
+                    binding.buttonCapture.setText(R.string.stop_audio_capture)
+                    requireContext().startService(
+                        Intent(
+                            requireContext(),
+                            AudioCaptureService::class.java
+                        ).apply {
+                            action = AudioCaptureService.ACTION_START
+                            putExtra(AudioCaptureService.EXTRA_RESULT_DATA, it.data)
+                        })
                 } else {
                     Toast.makeText(
                         requireContext(),
-                        "AudioCapture Denied!",
+                        getString(R.string.permission_denied, "AUDIO RECORD"),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -80,7 +86,7 @@ class ForYouFragment : Fragment() {
         }
     }
 
-    lateinit var observer: MyLifecycleObserver
+    private lateinit var observer: MyLifecycleObserver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,6 +96,7 @@ class ForYouFragment : Fragment() {
         }
     }
 
+    @SuppressLint("MissingPermission", "InlinedApi")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.textView.text =
@@ -99,67 +106,59 @@ class ForYouFragment : Fragment() {
         }
         binding.buttonCapture.setOnClickListener {
             if (VersionUtil.Q) {
-                if (ContextCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-
-                    val mediaProjectionManager =
-                        requireContext().applicationContext.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    observer.getResult.launch(mediaProjectionManager.createScreenCaptureIntent())
+                if (audioCapturing) {
+                    requireContext().startService(
+                        Intent(
+                            requireContext(),
+                            AudioCaptureService::class.java
+                        ).apply { action = AudioCaptureService.ACTION_STOP })
+                    audioCapturing = false
+                    binding.buttonCapture.setText(R.string.start_audio_capture)
                 } else {
-                    requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                        if (!it) {
+                    needPermission(Manifest.permission.RECORD_AUDIO) {
+                        if (it) {
+                            val mediaProjectionManager =
+                                requireContext().applicationContext.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                            observer.getResult.launch(mediaProjectionManager.createScreenCaptureIntent())
+                        } else {
                             Toast.makeText(
                                 requireContext(),
-                                "Permission Denied!",
+                                getString(R.string.permission_denied, "RECORD_MUSIC"),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
-                    }.launch(Manifest.permission.RECORD_AUDIO)
+                    }
                 }
             } else {
                 Toast.makeText(
                     requireContext(),
-                    "Only Support Android 10 And Above",
+                    getString(R.string.only_support_android_above, 10),
                     Toast.LENGTH_SHORT
                 ).show()
             }
         }
         binding.buttonBluetooth.setOnClickListener {
-            if (VersionUtil.S) {
-                if (ActivityCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.BLUETOOTH_CONNECT
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                        if (!it) {
-                            Toast.makeText(
-                                requireContext(),
-                                "Permission Denied!",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            needPermission(Manifest.permission.BLUETOOTH_CONNECT, !VersionUtil.S) {
+                if (it) {
+                    BluetoothListenerDialog().show(
+                        parentFragmentManager,
+                        "BluetoothListenerDialog"
+                    )
                 } else {
-                    BluetoothListenerDialog().show(parentFragmentManager, "BluetoothListenerDialog")
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.permission_denied, "BLUETOOTH_CONNECT"),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
-            } else {
-                BluetoothListenerDialog().show(parentFragmentManager, "BluetoothListenerDialog")
             }
         }
-        binding.rawDataLabel.text = "BluetoothBound"
+        binding.rawDataLabel.text = getString(R.string.bluetooth_bound)
         val bluetoothManager =
             requireContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = bluetoothManager.adapter
-        if (VersionUtil.S) {
-            if (ActivityCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.BLUETOOTH_CONNECT
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
+        needPermission(Manifest.permission.BLUETOOTH_CONNECT, !VersionUtil.S) { got ->
+            if (got) {
                 val adapter = NoDiffItemAdapter<BluetoothDevice>(
                     { it.name },
                     { it.address },
@@ -167,49 +166,27 @@ class ForYouFragment : Fragment() {
                     R.drawable.ic_baseline_music_note_24,
                     bluetoothAdapter.bondedDevices.toList()
                 ) { bluetoothDevice ->
-                    if (ActivityCompat.checkSelfPermission(
-                            requireContext(),
-                            Manifest.permission.BLUETOOTH_CONNECT
-                        ) != PackageManager.PERMISSION_GRANTED
-                    ) {
-                        if (VersionUtil.S) {
-                            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                                if (!it) {
-                                    Toast.makeText(
-                                        requireContext(),
-                                        "Permission Denied!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }.launch(Manifest.permission.BLUETOOTH_CONNECT)
-                        }
-                    } else {
+                    if (VersionUtil.Q) {
                         BluetoothClientDialog(bluetoothDevice).show(
                             parentFragmentManager,
                             "BluetoothClientDialog"
                         )
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.only_support_android_above, 10),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
                 binding.rawDataList.adapter = adapter
+            } else {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.permission_denied, "BLUETOOTH_CONNECT"),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-        } else {
-            val adapter = NoDiffItemAdapter<BluetoothDevice>(
-                { it.name },
-                { it.address },
-                { R.drawable.ic_baseline_music_note_24 },
-                R.drawable.ic_baseline_music_note_24,
-                bluetoothAdapter.bondedDevices.toList()
-            ) { bluetoothDevice ->
-                BluetoothClientDialog(bluetoothDevice).show(
-                    parentFragmentManager,
-                    "BluetoothClientDialog"
-                )
-            }
-            binding.rawDataList.adapter = adapter
         }
-    }
-
-    companion object {
-        val uuid = UUID.fromString("38400000-8cf0-11bd-b23e-10b96e4ef00e")
     }
 }

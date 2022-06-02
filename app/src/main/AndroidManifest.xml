@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="puelloc.musicplayer">
 
-    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.NFC" />

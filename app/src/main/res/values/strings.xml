@@ -26,4 +26,25 @@
     <string name="song_diff">%1$d songs removed, %2$d songs added</string>
     <string name="song_addition">%d songs added</string>
     <string name="song_deletion">%d songs removed</string>
+    <string name="audio_receiver">Audio Receiver</string>
+    <string name="audio_transfer">Audio Transfer</string>
+    <string name="audio_capture_connected">Audio Capture Service Connected</string>
+    <string name="wait_for_audio_capture">Audio Capture Service Connecting</string>
+    <string name="audio_capture_disconnected">Audio Capture Service Disconnected</string>
+    <string name="connected_audio_receiver">Connected To Audio Receiver</string>
+    <string name="media_playback">Music Playback</string>
+    <string name="media_playback_desc">Used to show and control the media playback state</string>
+    <string name="audio_capture_service">Audio Capture Service</string>
+    <string name="wait_for_audio_transfer">Wait For Audio Transfer</string>
+    <string name="audio_transfer_disconnected">Audio Transfer Disconnected</string>
+    <string name="connected_audio_transfer">Audio Transfer Connected</string>
+    <string name="start_audio_capture">Start Audio Capture</string>
+    <string name="stop_audio_capture">Stop Audio Capture</string>
+    <string name="bluetooth_bound">Bluetooth Paired Device</string>
+    <string name="only_support_android_above">Only Support Android %d And Above</string>
+    <string name="permission_denied">Require %s Denied</string>
+    <string name="connected_audio_transfer_fail">Connect Audio Transfer Fail</string>
+    <string name="connected_audio_receiver_fail">Connect Audio Receiver Fail</string>
+    <string name="audio_receiver_disconnected">Audio Receiver Disconnected</string>
+    <string name="bluetooth_listen">Start Audio Receiving</string>
 </resources>

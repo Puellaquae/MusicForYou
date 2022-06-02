@@ -13,6 +13,7 @@ import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
 import puelloc.musicplayer.pojo.relation.PlaylistWithSongs
 import puelloc.musicplayer.entity.Song
+import puelloc.musicplayer.utils.BuiltinSetting
 
 class PlaylistViewModel(application: Application) : AndroidViewModel(application) {
     private val appDatabase =
@@ -55,7 +56,9 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
                 val subSongs = ArrayList<Song>()
                 subDirs.map { it.value.buildPlaylist() }.forEach {
                     subPlaylist.addAll(it)
-                    subSongs.addAll(it.flatMap { p -> p.songs })
+                    if (BuiltinSetting.PLAYLIST_RECURSIVE_BUILD_FROM_FLODER) {
+                        subSongs.addAll(it.flatMap { p -> p.songs })
+                    }
                 }
                 if (songs.isNotEmpty()) {
                     subSongs.addAll(songs)

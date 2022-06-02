@@ -34,7 +34,7 @@ class MediaNotificationManager(
     private val sessionToken: MediaSessionCompat.Token
 ) {
     companion object {
-        private const val CHANNEL_ID = "123"
+        private const val CHANNEL_ID = "MediaPlayback Channel"
         const val NOTIFICATION_ID = 146
     }
 
@@ -99,9 +99,9 @@ class MediaNotificationManager(
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createChannel() {
         if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
-            val name = "Playback"
-            val descriptionText = "Playback controller"
-            val importance = NotificationManager.IMPORTANCE_LOW
+            val name = service.getString(R.string.media_playback)
+            val descriptionText = service.getString(R.string.media_playback_desc)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
             val mChannel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
                 enableVibration(false)

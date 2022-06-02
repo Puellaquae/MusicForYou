@@ -9,7 +9,7 @@ import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import puelloc.musicplayer.R
-import puelloc.musicplayer.databinding.DialogNfcBinding
+import puelloc.musicplayer.databinding.DialogMessageBinding
 import puelloc.musicplayer.utils.NFCUtils.Companion.APDU_AID
 import puelloc.musicplayer.utils.NFCUtils.Companion.selectApdu
 import java.io.IOException
@@ -20,7 +20,8 @@ class NFCDialog : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         nfcAdapter = NfcAdapter.getDefaultAdapter(context)
 
-        val binding = DialogNfcBinding.inflate(requireActivity().layoutInflater)
+        val binding = DialogMessageBinding.inflate(requireActivity().layoutInflater)
+        binding.message.setText(R.string.wait_for_nfc)
 
         nfcAdapter.enableReaderMode(
             activity,
@@ -49,17 +50,14 @@ class NFCDialog : DialogFragment() {
             val dialog = MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.fast_link)
                 .setView(binding.root)
-                .setNeutralButton(R.string.cancel) { _, _ ->
-                    // Do Nothing
-                }.setPositiveButton(R.string.ok) { _, _ ->
-                    // Do Nothing
-                }.create()
+                .setNeutralButton(R.string.cancel, null)
+                .setPositiveButton(R.string.ok, null).create()
             dialog
         } ?: throw IllegalStateException("Activity cannot be null")
     }
 
-    override fun onDismiss(dialog: DialogInterface) {
-        super.onDismiss(dialog)
+    override fun onDestroy() {
+        super.onDestroy()
         nfcAdapter.disableReaderMode(activity)
     }
 }

@@ -7,79 +7,94 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
 import android.content.Context
-import android.content.DialogInterface
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioTrack
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import puelloc.musicplayer.R
-import puelloc.musicplayer.databinding.DialogNfcBinding
-import puelloc.musicplayer.ui.fragment.ForYouFragment
+import puelloc.musicplayer.databinding.DialogMessageBinding
+import puelloc.musicplayer.utils.BuiltinSetting.BluetoothProtocols.RFCOMM
+import puelloc.musicplayer.utils.BuiltinSetting.BluetoothProtocols.RFCOMM_INSECURE
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.BLUETOOTH_RFCOMM_UUID
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.BLUETOOTH_USE
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.BUFFER_SIZE_IN_BYTES
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_AUDIO_ENCODE
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_SAMPLE_RATE
 import java.io.IOException
 import java.io.InputStream
 
 class BluetoothListenerDialog : DialogFragment() {
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var acceptThread: AcceptThread
-    private lateinit var binding: DialogNfcBinding
+    private var connectedThread: ConnectedThread? = null
+    private lateinit var binding: DialogMessageBinding
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val bluetoothManager =
             requireContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager.adapter
 
-        binding = DialogNfcBinding.inflate(requireActivity().layoutInflater)
+        binding = DialogMessageBinding.inflate(requireActivity().layoutInflater)
+        binding.message.setText(R.string.wait_for_audio_transfer)
         acceptThread = AcceptThread()
         acceptThread.start()
 
         return activity?.let { activity ->
             val dialog = MaterialAlertDialogBuilder(activity)
-                .setTitle("Listening")
+                .setTitle(R.string.audio_receiver)
                 .setView(binding.root)
-                .setNeutralButton(R.string.cancel) { _, _ ->
-                    // Do Nothing
-                }.setPositiveButton(R.string.ok) { _, _ ->
-                    // Do Nothing
-                }.create()
+                .setNeutralButton(R.string.cancel, null)
+                .setPositiveButton(R.string.ok, null).create()
             dialog
         } ?: throw IllegalStateException("Activity cannot be null")
     }
 
-    override fun onDismiss(dialog: DialogInterface) {
-        super.onDismiss(dialog)
+    override fun onDestroy() {
+        super.onDestroy()
         acceptThread.cancel()
+        connectedThread?.cancel()
     }
-
-    val bluetoothService = MyBluetoothService(Handler(Looper.getMainLooper()) {
-        binding.message.text = "${it.what} ${it.arg1} ${it.obj}"
-        true
-    })
 
     @SuppressLint("MissingPermission")
     private inner class AcceptThread : Thread() {
         val serverSocket: BluetoothServerSocket? by lazy(LazyThreadSafetyMode.NONE) {
-            bluetoothAdapter.listenUsingRfcommWithServiceRecord(
-                "Music For You",
-                ForYouFragment.uuid
-            )
+            when (BLUETOOTH_USE) {
+                RFCOMM -> bluetoothAdapter.listenUsingRfcommWithServiceRecord(
+                    "Music For You",
+                    BLUETOOTH_RFCOMM_UUID
+                )
+                RFCOMM_INSECURE -> bluetoothAdapter.listenUsingRfcommWithServiceRecord(
+                    "Music For You",
+                    BLUETOOTH_RFCOMM_UUID
+                )
+            }
         }
 
         override fun run() {
             var shouldLoop = true
             while (shouldLoop) {
                 val socket: BluetoothSocket? = try {
-                    Log.d(TAG, "try accept")
                     serverSocket?.accept()
                 } catch (e: IOException) {
                     Log.e(TAG, "socket accept fail", e)
+                    binding.message.post {
+                        binding.message.setText(R.string.connected_audio_transfer_fail)
+                    }
+                    serverSocket?.close()
                     shouldLoop = false
                     null
                 }
                 socket?.also {
-                    bluetoothService.start(it)
-                    //serverSocket?.close()
+                    binding.message.post {
+                        binding.message.setText(R.string.connected_audio_transfer)
+                    }
+                    connectedThread = ConnectedThread(it)
+                    connectedThread?.start()
+                    serverSocket?.close()
                     shouldLoop = false
                 }
             }
@@ -88,70 +103,60 @@ class BluetoothListenerDialog : DialogFragment() {
         fun cancel() {
             try {
                 serverSocket?.close()
-                bluetoothService.close()
             } catch (e: IOException) {
                 Log.e(TAG, "socket close fail", e)
             }
         }
     }
 
-    class MyBluetoothService(
-        // handler that gets info from Bluetooth service
-        private val handler: Handler
-    ) {
+    private inner class ConnectedThread(private val socket: BluetoothSocket) : Thread() {
+        private val inStream: InputStream = socket.inputStream
+        private val buffer: ByteArray =
+            ByteArray(BUFFER_SIZE_IN_BYTES)
+        private lateinit var audioTrack: AudioTrack
 
-        private inner class ConnectedThread(private val mmSocket: BluetoothSocket) : Thread() {
-
-            private val mmInStream: InputStream = mmSocket.inputStream
-            private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
-
-            override fun run() {
-                var numBytes: Int // bytes returned from read()
-
-                // Keep listening to the InputStream until an exception occurs.
-                while (true) {
-                    // Read from the InputStream.
-                    numBytes = try {
-                        mmInStream.read(mmBuffer)
-                    } catch (e: IOException) {
-                        Log.d(TAG, "Input stream was disconnected", e)
-                        break
-                    }
-
-                    // Send the obtained bytes to the UI activity.
-                    val readMsg = handler.obtainMessage(
-                        MESSAGE_READ, numBytes, -1,
-                        mmBuffer)
-                    readMsg.sendToTarget()
-                }
-            }
-
-            // Call this method from the main activity to shut down the connection.
-            fun cancel() {
+        override fun run() {
+            audioTrack = AudioTrack.Builder().apply {
+                setAudioAttributes(AudioAttributes.Builder().apply {
+                    setUsage(AudioAttributes.USAGE_MEDIA)
+                    setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    setLegacyStreamType(AudioManager.STREAM_MUSIC)
+                }.build())
+                setAudioFormat(AudioFormat.Builder().apply {
+                    setEncoding(USED_AUDIO_ENCODE)
+                    setSampleRate(USED_SAMPLE_RATE)
+                    setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+                }.build())
+                setTransferMode(AudioTrack.MODE_STREAM)
+                setBufferSizeInBytes(BUFFER_SIZE_IN_BYTES)
+            }.build()
+            audioTrack.play()
+            while (true) {
                 try {
-                    mmSocket.close()
+                    val numBytes = inStream.read(buffer)
+                    audioTrack.write(buffer, 0, numBytes)
                 } catch (e: IOException) {
-                    Log.e(TAG, "Could not close the connect socket", e)
+                    binding.message.post {
+                        binding.message.setText(R.string.audio_transfer_disconnected)
+                    }
+                    cancel()
+                    Log.d(TAG, "Input stream was disconnected", e)
+                    break
                 }
             }
         }
 
-        private var thread: ConnectedThread? = null
-
-        fun start(socket: BluetoothSocket) {
-            thread = ConnectedThread(socket)
-            thread?.start()
-        }
-
-        fun close() {
-            thread?.cancel()
+        fun cancel() {
+            try {
+                socket.close()
+                audioTrack.release()
+            } catch (e: IOException) {
+                Log.e(TAG, "Could not close the connect socket", e)
+            }
         }
     }
 
     companion object {
         const val TAG = "BluetoothListenerDialog"
-        const val MESSAGE_READ: Int = 0
-        const val MESSAGE_WRITE: Int = 1
-        const val MESSAGE_TOAST: Int = 2
     }
 }

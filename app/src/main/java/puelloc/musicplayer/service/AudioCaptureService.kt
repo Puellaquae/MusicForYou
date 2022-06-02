@@ -1,28 +1,34 @@
 package puelloc.musicplayer.service
 
-import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
+import android.media.AudioRecord.READ_NON_BLOCKING
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+import android.os.Binder
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import puelloc.musicplayer.R
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.BUFFER_SIZE_IN_BYTES
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_AUDIO_ENCODE
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_SAMPLE_RATE
+import puelloc.musicplayer.utils.VersionUtil.Companion.ANDROID_10
+import java.io.IOException
 import kotlin.concurrent.thread
-import kotlin.experimental.and
 
-@RequiresApi(29)
+@RequiresApi(ANDROID_10)
 class AudioCaptureService : Service() {
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
@@ -30,6 +36,9 @@ class AudioCaptureService : Service() {
 
     private lateinit var audioCaptureThread: Thread
     private var audioRecord: AudioRecord? = null
+
+    var socket: BluetoothSocket? = null
+    var onSocketError: ((e: IOException) -> Unit)? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -48,7 +57,7 @@ class AudioCaptureService : Service() {
     private fun createNotificationChannel() {
         val serviceChannel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            "Audio Capture Service Channel",
+            getString(R.string.audio_capture_service),
             NotificationManager.IMPORTANCE_DEFAULT
         )
 
@@ -79,6 +88,7 @@ class AudioCaptureService : Service() {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun startAudioCapture() {
         val config = AudioPlaybackCaptureConfiguration.Builder(mediaProjection!!)
             .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
@@ -89,25 +99,11 @@ class AudioCaptureService : Service() {
          * These can be changed according to your application's needs
          */
         val audioFormat = AudioFormat.Builder()
-            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-            .setSampleRate(8000)
-            .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+            .setEncoding(USED_AUDIO_ENCODE)
+            .setSampleRate(USED_SAMPLE_RATE)
+            .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
             .build()
 
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return
-        }
         audioRecord = AudioRecord.Builder()
             .setAudioFormat(audioFormat)
             // For optimal performance, the buffer size
@@ -126,11 +122,20 @@ class AudioCaptureService : Service() {
     }
 
     private fun captureAudio() {
-        val capturedAudioSamples = ShortArray(NUM_SAMPLES_PER_READ)
+        val capturedAudioSamples = ByteArray(BUFFER_SIZE_IN_BYTES)
 
         while (!audioCaptureThread.isInterrupted) {
-            audioRecord?.read(capturedAudioSamples, 0, NUM_SAMPLES_PER_READ)
-            Log.d(TAG, "Audio Captured, ${capturedAudioSamples.joinToString { it.toString(16) }}")
+            val numBytes =
+                audioRecord?.read(capturedAudioSamples, 0, BUFFER_SIZE_IN_BYTES, READ_NON_BLOCKING)
+                    ?: 0
+            try {
+                socket?.outputStream?.write(capturedAudioSamples, 0, numBytes)
+            } catch (e: IOException) {
+                socket = null
+                onSocketError?.let { it(e) }
+                onSocketError = null
+                Log.w(TAG, "send to bluetooth socket fail", e)
+            }
         }
     }
 
@@ -145,31 +150,27 @@ class AudioCaptureService : Service() {
         audioRecord = null
 
         mediaProjection!!.stop()
+
+        socket = null
+        onSocketError = null
+
         stopSelf()
     }
 
-    override fun onBind(p0: Intent?): IBinder? = null
+    inner class MyBinder : Binder() {
+        fun getService(): AudioCaptureService = this@AudioCaptureService
+    }
 
-    private fun ShortArray.toByteArray(): ByteArray {
-        // Samples get translated into bytes following little-endianness:
-        // least significant byte first and the most significant byte last
-        val bytes = ByteArray(size * 2)
-        for (i in 0 until size) {
-            bytes[i * 2] = (this[i] and 0x00FF).toByte()
-            bytes[i * 2 + 1] = (this[i].toInt() shr 8).toByte()
-            this[i] = 0
-        }
-        return bytes
+    private val binder = MyBinder()
+
+    override fun onBind(p0: Intent?): IBinder {
+        return binder
     }
 
     companion object {
         private const val TAG = "AudioCaptureService"
         private const val SERVICE_ID = 123
         private const val NOTIFICATION_CHANNEL_ID = "AudioCapture channel"
-
-        private const val NUM_SAMPLES_PER_READ = 1024
-        private const val BYTES_PER_SAMPLE = 2 // 2 bytes since we hardcoded the PCM 16-bit format
-        private const val BUFFER_SIZE_IN_BYTES = NUM_SAMPLES_PER_READ * BYTES_PER_SAMPLE
 
         const val ACTION_START = "AudioCaptureService:Start"
         const val ACTION_STOP = "AudioCaptureService:Stop"
