@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -73,7 +74,6 @@ class MediaNotificationManager(
         )
     )
 
-    private var lastSong: Song? = null
     private val notificationBuilder = NotificationCompat.Builder(service, CHANNEL_ID).apply {
         setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         setSmallIcon(R.drawable.ic_round_music_note_24)
@@ -81,7 +81,9 @@ class MediaNotificationManager(
             PendingIntent.getActivity(
                 service,
                 0,
-                Intent(service, MainActivity::class.java),
+                Intent(service, MainActivity::class.java).apply {
+                    flags = FLAG_ACTIVITY_SINGLE_TOP
+                },
                 PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         )
@@ -101,7 +103,7 @@ class MediaNotificationManager(
         if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
             val name = service.getString(R.string.media_playback)
             val descriptionText = service.getString(R.string.media_playback_desc)
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val importance = NotificationManager.IMPORTANCE_LOW
             val mChannel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
                 enableVibration(false)

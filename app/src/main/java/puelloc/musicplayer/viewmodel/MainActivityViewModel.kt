@@ -1,6 +1,7 @@
 package puelloc.musicplayer.viewmodel
 
 import android.app.Application
+import androidx.annotation.IdRes
 import androidx.annotation.StringRes
 import androidx.lifecycle.*
 import puelloc.musicplayer.R
@@ -41,8 +42,8 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
 
     val currentFragmentRes: LiveData<Int> = _currentFragmentRes
 
-    fun setCurrentFragmentRes(idx: Int) {
-        _currentFragmentRes.value = idx
+    fun setCurrentFragmentRes(@IdRes menuId: Int) {
+        _currentFragmentRes.value = menuId
     }
 
     val currentTitle = currentFragmentRes.switchMap { res ->

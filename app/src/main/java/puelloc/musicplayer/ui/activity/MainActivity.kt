@@ -138,6 +138,11 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
         mediaServiceHelper.stop()
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        binding.bottomNavigation.selectedItemId = R.id.nav_song
+    }
+
     private fun initView() {
         com.google.android.material.appbar.AppBarLayout.ScrollingViewBehavior()
 
@@ -187,8 +192,8 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
             }
 
             // viewPager.post {
-                viewPager.setCurrentItem(MENU_ID_TO_FRAGMENT_INDEX[R.id.nav_song]!!, false)
-                bottomNavigation.selectedItemId = R.id.nav_song
+            viewPager.setCurrentItem(MENU_ID_TO_FRAGMENT_INDEX[R.id.nav_song]!!, false)
+            bottomNavigation.selectedItemId = R.id.nav_song
             // }
 
             toolbar.setNavigationOnClickListener {

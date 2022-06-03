@@ -47,4 +47,6 @@
     <string name="connected_audio_receiver_fail">Connect Audio Receiver Fail</string>
     <string name="audio_receiver_disconnected">Audio Receiver Disconnected</string>
     <string name="bluetooth_listen">Start Audio Receiving</string>
+    <string name="media_playback_service">Media Playback Service</string>
+    <string name="host_apdu_service">Host APDU Service</string>
 </resources>

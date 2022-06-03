@@ -2,7 +2,6 @@ package puelloc.musicplayer.ui.fragment
 
 import android.app.Application
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -17,13 +16,13 @@ import puelloc.musicplayer.entity.Song
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.trait.IHandleBackPress
 import puelloc.musicplayer.trait.IHandleMenuItemClick
+import puelloc.musicplayer.ui.dialog.MiniPlayerDialog
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog.Companion.PICK_PLAYLIST_DIALOG_TAG
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
+import puelloc.musicplayer.viewmodel.MainActivityViewModel.Companion.MUSIC_LIBRARY_SHOW_PLAYLISTS
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
-import puelloc.musicplayer.viewmodel.SongViewModel
-import java.util.*
 import kotlin.properties.Delegates
 
 class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
@@ -41,7 +40,6 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
             _binding = value
         }
     private var currentPlaylistId by Delegates.notNull<Long>()
-    private val songViewModel: SongViewModel by activityViewModels()
     private val playlistViewModel: PlaylistViewModel by activityViewModels()
     private lateinit var playbackQueueViewModel: PlaybackQueueViewModel
     private val mainActivityViewModel: MainActivityViewModel by activityViewModels()
@@ -67,10 +65,15 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
             { AudioCover(it.path) },
             R.drawable.ic_baseline_music_note_24
         ) { song ->
-            playbackQueueViewModel.playPlaylist(
-                songAdapter.currentList.map { it.songId },
-                song.songId
-            )
+            if (true) {
+                val miniPlayerDialog = MiniPlayerDialog(song)
+                miniPlayerDialog.show(parentFragmentManager, "MiniPlayerDialog")
+            } else {
+                playbackQueueViewModel.playPlaylist(
+                    songAdapter.currentList.map { it.songId },
+                    song.songId
+                )
+            }
         }
         currentPlaylistId =
             arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, UNREACHABLE) ?: UNREACHABLE
@@ -132,6 +135,11 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
                     )
                     songAdapter.clearSelection()
                 }
+                true
+            }
+            R.id.menu_delete_playlist -> {
+                playlistViewModel.deletePlaylistsByPlaylistId(listOf(currentPlaylistId))
+                mainActivityViewModel.setToShowPlaylist(MUSIC_LIBRARY_SHOW_PLAYLISTS)
                 true
             }
             else -> false

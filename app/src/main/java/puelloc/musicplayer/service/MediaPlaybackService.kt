@@ -116,7 +116,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = MediaButtonReceiver.handleIntent(mediaSession, intent)
         Log.d(TAG, "keyEvent $action")
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {

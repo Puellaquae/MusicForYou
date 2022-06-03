@@ -42,7 +42,7 @@
             android:enabled="true"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback"
-            android:label="@string/app_name"
+            android:label="@string/media_playback_service"
             tools:ignore="ExportedService">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
@@ -55,6 +55,7 @@
         <service
             android:name=".service.MyHostApduService"
             android:exported="true"
+            android:label="@string/host_apdu_service"
             android:permission="android.permission.BIND_NFC_SERVICE">
             <intent-filter>
                 <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
@@ -66,6 +67,7 @@
 
         <service
             android:name=".service.AudioCaptureService"
+            android:label="@string/audio_capture_service"
             android:foregroundServiceType="mediaProjection" />
 
         <receiver
