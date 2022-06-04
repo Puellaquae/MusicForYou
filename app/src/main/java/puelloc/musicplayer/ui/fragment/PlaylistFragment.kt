@@ -17,6 +17,7 @@ import puelloc.musicplayer.trait.IHandleBackPress
 import puelloc.musicplayer.trait.IHandleFAB
 import puelloc.musicplayer.trait.IHandleMenuItemClick
 import puelloc.musicplayer.ui.dialog.NewPlaylistDialog
+import puelloc.musicplayer.ui.viewholder.SimpleItemViewHolder
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 
@@ -34,7 +35,7 @@ class PlaylistFragment : Fragment(), IHandleBackPress, IHandleFAB, IHandleMenuIt
         }
     private val playlistViewModel: PlaylistViewModel by activityViewModels()
     private val mainActivityViewModel: MainActivityViewModel by activityViewModels()
-    private lateinit var playlistAdapter: SelectableItemAdapter<PlaylistWithSongs>
+    private lateinit var playlistAdapter: SelectableItemAdapter<PlaylistWithSongs, SimpleItemViewHolder<PlaylistWithSongs>.ViewHolder>
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -49,19 +50,21 @@ class PlaylistFragment : Fragment(), IHandleBackPress, IHandleFAB, IHandleMenuIt
         playlistAdapter = SelectableItemAdapter(
             binding.playlistList,
             { it.playlist.playlistId!! },
-            { it.playlist.name },
-            { getString(R.string.songs_count, it.songs.size) },
-            {
-                if (it.songs.isEmpty()) {
-                    R.drawable.ic_baseline_music_note_24
-                } else {
-                    AudioCover(it.songs.first().path)
-                }
-            },
-            R.drawable.ic_baseline_music_note_24
-        ) {
-            mainActivityViewModel.setToShowPlaylist(it.playlist.playlistId!!)
-        }
+            SimpleItemViewHolder(
+                { it.playlist.name },
+                { getString(R.string.songs_count, it.songs.size) },
+                {
+                    if (it.songs.isEmpty()) {
+                        R.drawable.ic_baseline_music_note_24
+                    } else {
+                        AudioCover(it.songs.first().path)
+                    }
+                },
+                R.drawable.ic_baseline_music_note_24
+            ) {
+                mainActivityViewModel.setToShowPlaylist(it.playlist.playlistId!!)
+            }
+        )
         playlistViewModel.playlistsWithSongs.observe(viewLifecycleOwner) {
             playlistAdapter.submitList(it)
         }

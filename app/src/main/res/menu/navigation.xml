@@ -4,13 +4,13 @@
     <item
         android:id="@+id/nav_for_you"
         android:enabled="true"
-        android:title="For You" />
+        android:title="@string/for_you" />
     <item
         android:id="@+id/nav_song"
         android:enabled="true"
-        android:title="Song" />
+        android:title="@string/song" />
     <item
-        android:id="@+id/nav_musiclibrary"
+        android:id="@+id/nav_music_library"
         android:enabled="true"
-        android:title="Music" />
+        android:title="@string/music_library" />
 </menu>

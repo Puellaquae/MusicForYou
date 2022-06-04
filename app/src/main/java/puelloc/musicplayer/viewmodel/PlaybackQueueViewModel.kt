@@ -35,6 +35,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
 
     fun appendSongs(songIds: List<Long>) {
         viewModelScope.launch(Dispatchers.IO) {
+            needAutoSave.postValue(true)
             playbackQueueDao.append(songIds)
         }
     }
@@ -137,11 +138,17 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
     }
 
     /**
+     * will be changed in [deleteItemId], [moveItemAndInsert] and [appendSongs]
+     */
+    private val needAutoSave = MutableLiveData<Boolean>()
+
+    /**
      * Auto save current playback queue if not empty
      */
     fun playPlaylist(songIds: List<Long>, songId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
-            if (playbackQueueDao.size() != 0) {
+            if (playbackQueueDao.size() != 0 && needAutoSave.value == true) {
+                needAutoSave.postValue(false)
                 val playlistId =
                     playlistDao.rowIdToPlaylistId(playlistDao.insert(Playlist(name = "AutoSave")))
                 saveToPlaylistSync(playlistId)
@@ -149,6 +156,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
             }
             playbackQueueDao.append(songIds)
             playing.postValue(true)
+            needRestart.postValue(true)
             playSongIdSync(songId)
         }
     }
@@ -168,8 +176,15 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
 
     val playing = MutableLiveData<Boolean>()
 
+    fun playPause() {
+        playing.postValue(playing.value?.not())
+    }
+
+    val needRestart = MutableLiveData<Boolean>()
+
     fun moveItemAndInsert(item: PlaybackQueueItem, positionOrder: Long, insertBefore: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
+            needAutoSave.postValue(true)
             if (insertBefore) {
                 playbackQueueDao.moveRangeDown(positionOrder, item.order, 1)
                 playbackQueueDao.updateOrder(item.itemId!!, positionOrder)
@@ -178,5 +193,16 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                 playbackQueueDao.updateOrder(item.itemId!!, positionOrder)
             }
         }
+    }
+
+    fun deleteItemId(itemId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            needAutoSave.postValue(true)
+            playbackQueueDao.deleteByItemId(itemId)
+        }
+    }
+
+    val currentPosition = MutableLiveData<Int>().apply {
+        postValue(0)
     }
 }

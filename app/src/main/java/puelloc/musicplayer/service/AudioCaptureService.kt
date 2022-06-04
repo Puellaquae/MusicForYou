@@ -8,10 +8,7 @@ import android.app.Service
 import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioPlaybackCaptureConfiguration
-import android.media.AudioRecord
+import android.media.*
 import android.media.AudioRecord.READ_NON_BLOCKING
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -21,8 +18,8 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import puelloc.musicplayer.R
+import puelloc.musicplayer.ui.dialog.BluetoothListenerDialog
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BUFFER_SIZE_IN_BYTES
-import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_AUDIO_ENCODE
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_SAMPLE_RATE
 import puelloc.musicplayer.utils.VersionUtil.Companion.ANDROID_10
 import java.io.IOException
@@ -36,6 +33,7 @@ class AudioCaptureService : Service() {
 
     private lateinit var audioCaptureThread: Thread
     private var audioRecord: AudioRecord? = null
+    private lateinit var mediaCodec: MediaCodec
 
     var socket: BluetoothSocket? = null
     var onSocketError: ((e: IOException) -> Unit)? = null
@@ -99,11 +97,23 @@ class AudioCaptureService : Service() {
          * These can be changed according to your application's needs
          */
         val audioFormat = AudioFormat.Builder()
-            .setEncoding(USED_AUDIO_ENCODE)
+            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
             .setSampleRate(USED_SAMPLE_RATE)
             .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
             .build()
 
+        mediaCodec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
+        mediaCodec.configure(
+            MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, USED_SAMPLE_RATE, 1)
+                .apply {
+                    setInteger(MediaFormat.KEY_BIT_RATE, 320000)
+                    setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, BUFFER_SIZE_IN_BYTES)
+                },
+            null,
+            null,
+            MediaCodec.CONFIGURE_FLAG_ENCODE
+        )
+        mediaCodec.start()
         audioRecord = AudioRecord.Builder()
             .setAudioFormat(audioFormat)
             // For optimal performance, the buffer size
@@ -125,11 +135,38 @@ class AudioCaptureService : Service() {
         val capturedAudioSamples = ByteArray(BUFFER_SIZE_IN_BYTES)
 
         while (!audioCaptureThread.isInterrupted) {
+            val inputIndex = mediaCodec.dequeueInputBuffer(100)
+            if (inputIndex < 0) {
+                Log.d(TAG, "no InputIndex")
+                continue
+            }
+            val inputBuffer = mediaCodec.getInputBuffer(inputIndex)
             val numBytes =
-                audioRecord?.read(capturedAudioSamples, 0, BUFFER_SIZE_IN_BYTES, READ_NON_BLOCKING)
+                audioRecord?.read(
+                    capturedAudioSamples,
+                    0,
+                    BUFFER_SIZE_IN_BYTES,
+                    READ_NON_BLOCKING
+                )
                     ?: 0
+            inputBuffer?.clear()
+            inputBuffer?.limit(capturedAudioSamples.size)
+            inputBuffer?.put(capturedAudioSamples)
+            mediaCodec.queueInputBuffer(inputIndex, 0, numBytes, 0, 0)
+            val bufferInfo = MediaCodec.BufferInfo()
+            val outputIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 100)
+            if (outputIndex < 0) {
+                Log.d(TAG, "no OutputIndex")
+                continue
+            }
+            val outBuffer = mediaCodec.getOutputBuffer(outputIndex)
             try {
-                socket?.outputStream?.write(capturedAudioSamples, 0, numBytes)
+                if (outBuffer != null) {
+                    Log.d(TAG, "socket out ${bufferInfo.size}")
+                    socket?.outputStream?.write(outBuffer.array(), 0, bufferInfo.size)
+                } else {
+                    Log.d(TAG, "null outBuffer")
+                }
             } catch (e: IOException) {
                 socket = null
                 onSocketError?.let { it(e) }
@@ -150,6 +187,9 @@ class AudioCaptureService : Service() {
         audioRecord = null
 
         mediaProjection!!.stop()
+
+        mediaCodec.stop()
+        mediaCodec.release()
 
         socket = null
         onSocketError = null

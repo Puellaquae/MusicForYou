@@ -11,6 +11,7 @@ import puelloc.musicplayer.adapter.ItemAdapter
 import puelloc.musicplayer.databinding.DialogPickPlaylistBinding
 import puelloc.musicplayer.pojo.relation.PlaylistWithSongs
 import puelloc.musicplayer.glide.audiocover.AudioCover
+import puelloc.musicplayer.ui.viewholder.SimpleItemViewHolder
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 
 class PickPlaylistDialog(
@@ -28,22 +29,24 @@ class PickPlaylistDialog(
         super.onCreateDialog(savedInstanceState)
         return activity?.let { activity ->
             val binding = DialogPickPlaylistBinding.inflate(requireActivity().layoutInflater)
-            val adapter = ItemAdapter<PlaylistWithSongs>(
+            val adapter = ItemAdapter(
                 { it.playlist.playlistId!! },
-                { it.playlist.name },
-                { getString(R.string.songs_count, it.songs.size) },
-                {
-                    if (it.songs.isEmpty()) {
-                        R.drawable.ic_baseline_music_note_24
-                    } else {
-                        AudioCover(it.songs.first().path)
-                    }
-                },
-                R.drawable.ic_baseline_music_note_24
-            ) {
-                callBack(it.playlist.playlistId!!)
-                dismiss()
-            }
+                SimpleItemViewHolder<PlaylistWithSongs>(
+                    { it.playlist.name },
+                    { getString(R.string.songs_count, it.songs.size) },
+                    {
+                        if (it.songs.isEmpty()) {
+                            R.drawable.ic_baseline_music_note_24
+                        } else {
+                            AudioCover(it.songs.first().path)
+                        }
+                    },
+                    R.drawable.ic_baseline_music_note_24
+                ) {
+                    callBack(it.playlist.playlistId!!)
+                    dismiss()
+                }
+            )
             binding.playlistList.adapter = adapter
             playlistViewModel.getAllNotFromFolderPlaylistsWithSongs().observe(this) { list ->
                 if (excludePlaylistId != NO_EXCLUDE_PLAYLIST_ID) {
@@ -55,9 +58,8 @@ class PickPlaylistDialog(
             val dialog = MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.pick_playlist)
                 .setView(binding.root)
-                .setNeutralButton(R.string.cancel) { _, _ ->
-                    // Do Nothing
-                }.setPositiveButton(R.string.ok) { _, _ ->
+                .setNeutralButton(R.string.cancel, null)
+                .setPositiveButton(R.string.ok) { _, _ ->
                     val name = binding.nameText.text.toString()
                     if (!TextUtils.isEmpty(name)) {
                         playlistViewModel.newPlaylistAndGetPlaylistId(name)

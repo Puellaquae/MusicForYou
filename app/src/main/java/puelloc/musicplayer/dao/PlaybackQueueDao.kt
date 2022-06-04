@@ -98,4 +98,7 @@ abstract class PlaybackQueueDao {
 
     @Query("UPDATE PlaybackQueue SET `order` = :newOrder WHERE itemId == :itemId")
     abstract fun updateOrder(itemId: Long, newOrder: Long)
+
+    @Query("DELETE FROM PlaybackQueue WHERE itemId == :itemId")
+    abstract fun deleteByItemId(itemId: Long)
 }

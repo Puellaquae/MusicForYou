@@ -3,8 +3,13 @@ package puelloc.musicplayer.adapter
 import androidx.recyclerview.widget.*
 import puelloc.musicplayer.trait.Equatable
 
-abstract class AsyncDiffAdapter<T, VH : RecyclerView.ViewHolder>(val getItemId: (item: T) -> Long) :
-    RecyclerView.Adapter<VH>() where T : Any, T : Equatable {
+abstract class AsyncDiffAdapter<T, VH>(
+    val getItemId: (item: T) -> Long
+) :
+    RecyclerView.Adapter<VH>()
+        where T : Any,
+              T : Equatable,
+              VH : RecyclerView.ViewHolder {
     private val diffCallback: DiffUtil.ItemCallback<T> = object : DiffUtil.ItemCallback<T>() {
         override fun areItemsTheSame(oldItem: T, newItem: T): Boolean =
             getItemId(oldItem) == getItemId(newItem)

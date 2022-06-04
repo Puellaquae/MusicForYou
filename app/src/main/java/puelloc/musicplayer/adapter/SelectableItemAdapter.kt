@@ -1,34 +1,28 @@
 package puelloc.musicplayer.adapter
 
 import android.view.MotionEvent
-import androidx.annotation.DrawableRes
 import androidx.recyclerview.selection.ItemDetailsLookup
 import androidx.recyclerview.selection.ItemKeyProvider
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.RecyclerView
+import puelloc.musicplayer.trait.BindableAndHighlightableViewHolder
 import puelloc.musicplayer.trait.Equatable
+import puelloc.musicplayer.trait.IViewHolderBuilder
 
 /**
  * this will auto set adapter to recyclerView
  */
-class SelectableItemAdapter<T>(
+class SelectableItemAdapter<T, VH>(
     recyclerView: RecyclerView,
     getItemId: (item: T) -> Long,
-    getItemTitle: (item: T) -> String,
-    getItemSubtitle: (item: T) -> String,
-    getItemImage: (item: T) -> Any,
-    @DrawableRes defaultItemImage: Int,
-    onClick: (item: T) -> Unit
+    viewHolderBuilder: IViewHolderBuilder<VH>
 ) :
-    ItemAdapter<T>(
-        getItemId,
-        getItemTitle,
-        getItemSubtitle,
-        getItemImage,
-        defaultItemImage,
-        onClick
-    ) where T : Any, T : Equatable {
+    ItemAdapter<T, VH>(getItemId, viewHolderBuilder)
+        where T : Any,
+              T : Equatable,
+              VH : RecyclerView.ViewHolder,
+              VH : BindableAndHighlightableViewHolder<T> {
 
     private val selectionTracker: SelectionTracker<Long>
 
@@ -52,15 +46,13 @@ class SelectableItemAdapter<T>(
                     val childView = recyclerView.findChildViewUnder(e.x, e.y)
                     if (childView != null) {
                         val viewHolder = recyclerView.getChildViewHolder(childView)
-                        if (viewHolder is ItemAdapter<*>.ViewHolder) {
-                            return object : ItemDetails<Long>() {
-                                override fun getPosition(): Int {
-                                    return viewHolder.bindingAdapterPosition
-                                }
+                        return object : ItemDetails<Long>() {
+                            override fun getPosition(): Int {
+                                return viewHolder.bindingAdapterPosition
+                            }
 
-                                override fun getSelectionKey(): Long {
-                                    return viewHolder.itemId
-                                }
+                            override fun getSelectionKey(): Long {
+                                return viewHolder.itemId
                             }
                         }
                     }
@@ -71,7 +63,7 @@ class SelectableItemAdapter<T>(
         ).build()
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
         holder.bind(item, selectionTracker.isSelected(getItemId(item)))
     }

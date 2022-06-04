@@ -11,6 +11,8 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     private val appDatabase =
         AppDatabase.getDatabase(getApplication<Application?>().applicationContext)
     private val playlistDao = appDatabase.playlistDao()
+    private val playbackQueueViewModel =
+        PlaybackQueueViewModel.getInstance(getApplication<Application?>().applicationContext as Application)
 
     private fun getString(@StringRes res: Int): String =
         getApplication<Application?>().applicationContext.getString(res)
@@ -50,7 +52,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         val title =
             getApplication<Application?>().applicationContext.getString(R.string.app_name)
         when (res) {
-            R.id.nav_musiclibrary -> getTitleForMusicLibrary(title)
+            R.id.nav_music_library -> getTitleForMusicLibrary(title)
             else -> liveData { emit(title to "") }
         }
     }
@@ -84,7 +86,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     val currentTopBarButtonAndMenu: LiveData<Pair<Int?, Int?>> =
         currentFragmentRes.switchMap { res ->
             when (res) {
-                R.id.nav_musiclibrary -> getTopBarButtonAndMenuForMusicLibrary()
+                R.id.nav_music_library -> getTopBarButtonAndMenuForMusicLibrary()
                 R.id.nav_song -> liveData {
                     emit(null to R.menu.menu_playback_queue)
                 }
@@ -127,7 +129,14 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
 
     val currentFABIcon: LiveData<Int?> = currentFragmentRes.switchMap { res ->
         when (res) {
-            R.id.nav_musiclibrary -> getFABIconForMusicLibrary()
+            R.id.nav_music_library -> getFABIconForMusicLibrary()
+            R.id.nav_song -> playbackQueueViewModel.currentSong.map {
+                if (it == null) {
+                    null
+                } else {
+                    R.drawable.ic_baseline_music_note_24
+                }
+            }
             else -> liveData { emit(null) }
         }
     }
@@ -137,7 +146,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
             if (it == MUSIC_LIBRARY_SHOW_PLAYLISTS) {
                 R.drawable.ic_baseline_add_24
             } else {
-                null
+                R.drawable.ic_baseline_play_arrow_24
             }
         }
 

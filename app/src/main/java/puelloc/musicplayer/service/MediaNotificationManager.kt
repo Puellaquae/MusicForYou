@@ -17,8 +17,6 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.graphics.drawable.IconCompat
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.text.parseAsHtml
 import androidx.media.session.MediaButtonReceiver
 import com.bumptech.glide.Glide

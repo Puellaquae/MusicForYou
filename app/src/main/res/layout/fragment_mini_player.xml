@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/shape_round"
     android:orientation="vertical"
     android:paddingTop="16dp"
     android:paddingBottom="16dp">
@@ -91,7 +90,7 @@
 
         <TextView
             android:id="@+id/timeNow"
-            android:layout_width="wrap_content"
+            android:layout_width="48dp"
             android:layout_height="wrap_content"
             android:text="1:33"
             app:layout_constraintStart_toStartOf="parent"
@@ -99,8 +98,9 @@
 
         <TextView
             android:id="@+id/timeAll"
-            android:layout_width="wrap_content"
+            android:layout_width="48dp"
             android:layout_height="wrap_content"
+            android:gravity="end"
             android:text="3:11"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -109,7 +109,7 @@
             android:id="@+id/songInfo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="FLAC • 1082KBPS • 44.1KHZ"
+            android:text="1082 kbps • 44.1 kHz"
             app:layout_constraintEnd_toStartOf="@id/timeAll"
             app:layout_constraintStart_toEndOf="@id/timeNow"
             app:layout_constraintTop_toTopOf="parent" />

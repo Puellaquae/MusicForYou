@@ -1,32 +1,34 @@
 package puelloc.musicplayer.adapter
 
+import android.icu.text.Transliterator
+import android.util.Log
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import puelloc.musicplayer.trait.BindableAndHighlightableViewHolder
 import puelloc.musicplayer.trait.Equatable
+import puelloc.musicplayer.trait.IViewHolderBuilder
 
-abstract class ReorderableItemAdapter<T>(
+abstract class ReorderableItemAdapter<T, VH>(
     recyclerView: RecyclerView,
     getItemId: (T) -> Long,
-    getItemTitle: (T) -> String,
-    getItemSubtitle: (T) -> String,
-    getItemImage: (T) -> Any,
-    defaultItemImage: Int,
-    onClick: (T) -> Unit
-) : ItemAdapter<T>(
+    viewHolderBuilder: IViewHolderBuilder<VH>
+) : ItemAdapter<T, VH>(
     getItemId,
-    getItemTitle,
-    getItemSubtitle,
-    getItemImage,
-    defaultItemImage,
-    onClick
-) where T : Any, T : Equatable {
+    viewHolderBuilder
+) where T : Any,
+        T : Equatable,
+        VH : RecyclerView.ViewHolder,
+        VH : BindableAndHighlightableViewHolder<T> {
     private val itemTouchCallback =
         object : ItemTouchHelper.Callback() {
             override fun getMovementFlags(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder
             ): Int {
-                return makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+                return makeMovementFlags(
+                    ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                    ItemTouchHelper.END
+                )
             }
 
             private var startPosition = -1
@@ -39,13 +41,15 @@ abstract class ReorderableItemAdapter<T>(
             ): Boolean {
                 val fromPosition = viewHolder.bindingAdapterPosition
                 val toPosition = target.bindingAdapterPosition
+                Log.d("ReorderableItemAdapter", "$fromPosition to $endPosition")
                 endPosition = toPosition
                 notifyItemMoved(fromPosition, toPosition)
                 return true
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                // No Need implementation
+                val position = viewHolder.bindingAdapterPosition
+                remove(position)
             }
 
             override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
@@ -53,10 +57,13 @@ abstract class ReorderableItemAdapter<T>(
 
                 if (viewHolder != null && actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
                     startPosition = viewHolder.bindingAdapterPosition
+                    endPosition = -1
                 }
                 if (actionState == ItemTouchHelper.ACTION_STATE_IDLE) {
-                    preventNextTimeDiffCallback = true
-                    swap(startPosition, endPosition)
+                    if (startPosition != -1 && endPosition != -1) {
+                        preventNextTimeDiffCallback = true
+                        swap(startPosition, endPosition)
+                    }
                 }
             }
         }
@@ -67,4 +74,5 @@ abstract class ReorderableItemAdapter<T>(
     }
 
     abstract fun swap(fromPosition: Int, toPosition: Int)
+    abstract fun remove(position: Int)
 }

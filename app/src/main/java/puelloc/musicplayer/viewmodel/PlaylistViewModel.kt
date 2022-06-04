@@ -56,7 +56,7 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
                 val subSongs = ArrayList<Song>()
                 subDirs.map { it.value.buildPlaylist() }.forEach {
                     subPlaylist.addAll(it)
-                    if (BuiltinSetting.PLAYLIST_RECURSIVE_BUILD_FROM_FLODER) {
+                    if (BuiltinSetting.PLAYLIST_RECURSIVE_BUILD_FROM_FOLDER) {
                         subSongs.addAll(it.flatMap { p -> p.songs })
                     }
                 }

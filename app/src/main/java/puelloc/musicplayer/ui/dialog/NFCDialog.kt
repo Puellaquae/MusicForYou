@@ -1,7 +1,6 @@
 package puelloc.musicplayer.ui.dialog
 
 import android.app.Dialog
-import android.content.DialogInterface
 import android.nfc.NfcAdapter
 import android.nfc.NfcAdapter.FLAG_READER_NFC_A
 import android.nfc.tech.IsoDep

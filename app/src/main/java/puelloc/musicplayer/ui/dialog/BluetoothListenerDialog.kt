@@ -7,10 +7,7 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
 import android.content.Context
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioManager
-import android.media.AudioTrack
+import android.media.*
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.DialogFragment
@@ -22,7 +19,6 @@ import puelloc.musicplayer.utils.BuiltinSetting.BluetoothProtocols.RFCOMM_INSECU
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BLUETOOTH_RFCOMM_UUID
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BLUETOOTH_USE
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BUFFER_SIZE_IN_BYTES
-import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_AUDIO_ENCODE
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_SAMPLE_RATE
 import java.io.IOException
 import java.io.InputStream
@@ -114,8 +110,19 @@ class BluetoothListenerDialog : DialogFragment() {
         private val buffer: ByteArray =
             ByteArray(BUFFER_SIZE_IN_BYTES)
         private lateinit var audioTrack: AudioTrack
+        private lateinit var mediaCodec: MediaCodec
+
 
         override fun run() {
+            mediaCodec =
+                MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
+            mediaCodec.configure(
+                MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, USED_SAMPLE_RATE, 1),
+                null,
+                null,
+                0
+            )
+            mediaCodec.start()
             audioTrack = AudioTrack.Builder().apply {
                 setAudioAttributes(AudioAttributes.Builder().apply {
                     setUsage(AudioAttributes.USAGE_MEDIA)
@@ -123,7 +130,7 @@ class BluetoothListenerDialog : DialogFragment() {
                     setLegacyStreamType(AudioManager.STREAM_MUSIC)
                 }.build())
                 setAudioFormat(AudioFormat.Builder().apply {
-                    setEncoding(USED_AUDIO_ENCODE)
+                    setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                     setSampleRate(USED_SAMPLE_RATE)
                     setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                 }.build())
@@ -133,8 +140,27 @@ class BluetoothListenerDialog : DialogFragment() {
             audioTrack.play()
             while (true) {
                 try {
+                    val inputIndex = mediaCodec.dequeueInputBuffer(100)
+                    if (inputIndex < 0) {
+                        Log.d(TAG, "no InputIndex")
+                        continue
+                    }
+                    val inputBuffer = mediaCodec.getInputBuffer(inputIndex)
+                    inputBuffer?.clear()
                     val numBytes = inStream.read(buffer)
-                    audioTrack.write(buffer, 0, numBytes)
+                    inputBuffer?.put(buffer)
+                    mediaCodec.queueInputBuffer(inputIndex, 0, numBytes, 0, 0)
+                    val bufferInfo = MediaCodec.BufferInfo()
+                    val outputIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 100)
+                    if (outputIndex < 0) {
+                        Log.d(TAG, "no OutputIndex")
+                        continue
+                    }
+                    val outputBuffer = mediaCodec.getOutputBuffer(outputIndex)
+                    if (outputBuffer != null) {
+                        audioTrack.write(outputBuffer.array(), 0, bufferInfo.size)
+                    }
+                    mediaCodec.releaseOutputBuffer(outputIndex, false)
                 } catch (e: IOException) {
                     binding.message.post {
                         binding.message.setText(R.string.audio_transfer_disconnected)
@@ -150,6 +176,8 @@ class BluetoothListenerDialog : DialogFragment() {
             try {
                 socket.close()
                 audioTrack.release()
+                mediaCodec.stop()
+                mediaCodec.release()
             } catch (e: IOException) {
                 Log.e(TAG, "Could not close the connect socket", e)
             }

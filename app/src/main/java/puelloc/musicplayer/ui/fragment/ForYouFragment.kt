@@ -26,6 +26,7 @@ import puelloc.musicplayer.service.AudioCaptureService
 import puelloc.musicplayer.ui.dialog.BluetoothClientDialog
 import puelloc.musicplayer.ui.dialog.BluetoothListenerDialog
 import puelloc.musicplayer.ui.dialog.NFCDialog
+import puelloc.musicplayer.ui.viewholder.SimpleItemViewHolder
 import puelloc.musicplayer.utils.PermissionUtil.Companion.hasPermission
 import puelloc.musicplayer.utils.PermissionUtil.Companion.requirePermissionResult
 import puelloc.musicplayer.utils.VersionUtil
@@ -124,22 +125,24 @@ class ForYouFragment : Fragment() {
         val bluetoothManager =
             requireContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = bluetoothManager.adapter
-        val adapter = NoDiffItemAdapter<BluetoothDevice>(
-            { it.name },
-            { it.address },
-            { R.drawable.ic_baseline_music_note_24 },
-            R.drawable.ic_baseline_music_note_24,
-            bluetoothAdapter.bondedDevices.toList()
-        ) { bluetoothDevice ->
-            if (VersionUtil.Q) {
-                BluetoothClientDialog(bluetoothDevice).show(
-                    parentFragmentManager,
-                    "BluetoothClientDialog"
-                )
-            } else {
-                showToast(getString(R.string.only_support_android_above, 10))
+        val adapter = NoDiffItemAdapter(
+            bluetoothAdapter.bondedDevices.toList(),
+            SimpleItemViewHolder<BluetoothDevice>(
+                { it.name },
+                { it.address },
+                { R.drawable.ic_baseline_bluetooth_24 },
+                R.drawable.ic_baseline_bluetooth_24,
+            ) { bluetoothDevice ->
+                if (VersionUtil.Q) {
+                    BluetoothClientDialog(bluetoothDevice).show(
+                        parentFragmentManager,
+                        "BluetoothClientDialog"
+                    )
+                } else {
+                    showToast(getString(R.string.only_support_android_above, 10))
+                }
             }
-        }
+        )
         binding.rawDataList.adapter = adapter
     }
 

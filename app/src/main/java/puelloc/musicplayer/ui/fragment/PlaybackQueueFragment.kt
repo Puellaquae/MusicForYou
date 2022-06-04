@@ -13,19 +13,23 @@ import puelloc.musicplayer.adapter.ReorderableItemAdapter
 import puelloc.musicplayer.databinding.FragmentPlaybackQueueBinding
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.pojo.relation.PlaybackQueueItemWithSong
+import puelloc.musicplayer.trait.IHandleFAB
 import puelloc.musicplayer.trait.IHandleMenuItemClick
+import puelloc.musicplayer.ui.dialog.CurrentMiniPlayerDialog
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog.Companion.PICK_PLAYLIST_DIALOG_TAG
+import puelloc.musicplayer.ui.viewholder.SimpleItemViewHolder
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 
-class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
+class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick, IHandleFAB {
     private var _binding: FragmentPlaybackQueueBinding? = null
     private var binding: FragmentPlaybackQueueBinding
         get() = _binding!!
         set(value) {
             _binding = value
         }
-    private lateinit var playbackQueueAdapter: ItemAdapter<PlaybackQueueItemWithSong>
+
+    private lateinit var playbackQueueAdapter: ItemAdapter<PlaybackQueueItemWithSong, SimpleItemViewHolder<PlaybackQueueItemWithSong>.ViewHolder>
     private lateinit var playbackQueueViewModel: PlaybackQueueViewModel
     private var lastPlayItemId: Long = -1L
 
@@ -41,25 +45,35 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
         super.onViewCreated(view, savedInstanceState)
         playbackQueueViewModel =
             PlaybackQueueViewModel.getInstance(requireContext().applicationContext as Application)
-        playbackQueueAdapter = object : ReorderableItemAdapter<PlaybackQueueItemWithSong>(
-            binding.playbackQueueList,
-            { it.queueItem.itemId!! },
-            { it.song.name },
-            { it.song.artistName },
-            { AudioCover(it.song.path) },
-            R.drawable.ic_baseline_music_note_24,
-            {
-                playbackQueueViewModel.playing.postValue(true)
-                playbackQueueViewModel.currentItemId.postValue(it.queueItem.itemId)
-            }
-        ) {
-            override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        playbackQueueAdapter = object :
+            ReorderableItemAdapter<PlaybackQueueItemWithSong, SimpleItemViewHolder<PlaybackQueueItemWithSong>.ViewHolder>(
+                binding.playbackQueueList,
+                { it.queueItem.itemId!! },
+                SimpleItemViewHolder(
+                    { it.song.name },
+                    { it.song.artistName },
+                    { AudioCover(it.song.path) },
+                    R.drawable.ic_baseline_music_note_24
+                )
+                {
+                    if (playbackQueueViewModel.currentItemId.value != it.queueItem.itemId) {
+                        playbackQueueViewModel.playing.postValue(true)
+                    } else {
+                        playbackQueueViewModel.playPause()
+                    }
+                    playbackQueueViewModel.currentItemId.postValue(it.queueItem.itemId)
+                }
+            ) {
+            override fun onBindViewHolder(
+                holder: SimpleItemViewHolder<PlaybackQueueItemWithSong>.ViewHolder,
+                position: Int
+            ) {
                 val item = getItem(position)
                 holder.bind(item, item.queueItem.itemId == lastPlayItemId)
             }
 
             override fun onBindViewHolder(
-                holder: ViewHolder,
+                holder: SimpleItemViewHolder<PlaybackQueueItemWithSong>.ViewHolder,
                 position: Int,
                 payloads: MutableList<Any>
             ) {
@@ -70,7 +84,16 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
             override fun swap(fromPosition: Int, toPosition: Int) {
                 val fromItem = getItem(fromPosition)
                 val toItem = getItem(toPosition)
-                playbackQueueViewModel.moveItemAndInsert(fromItem.queueItem, toItem.queueItem.order, fromPosition > toPosition)
+                playbackQueueViewModel.moveItemAndInsert(
+                    fromItem.queueItem,
+                    toItem.queueItem.order,
+                    fromPosition > toPosition
+                )
+            }
+
+            override fun remove(position: Int) {
+                val item = getItem(position)
+                playbackQueueViewModel.deleteItemId(item.queueItem.itemId!!)
             }
         }
         binding.playbackQueueList.adapter = playbackQueueAdapter
@@ -112,5 +135,11 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick {
             }
             else -> false
         }
+    }
+
+    override fun onFABClick(): Boolean {
+        val miniPlayerDialog = CurrentMiniPlayerDialog()
+        miniPlayerDialog.show(parentFragmentManager, "CurrentMiniPlayerDialog")
+        return true
     }
 }

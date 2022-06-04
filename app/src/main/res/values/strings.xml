@@ -49,4 +49,8 @@
     <string name="bluetooth_listen">Start Audio Receiving</string>
     <string name="media_playback_service">Media Playback Service</string>
     <string name="host_apdu_service">Host APDU Service</string>
+    <string name="for_you" translatable="false">For You</string>
+    <string name="song" translatable="false">Song</string>
+    <string name="music_library" translatable="false">Music</string>
+    <string name="song_time" translatable="false">%d:%02d</string>
 </resources>

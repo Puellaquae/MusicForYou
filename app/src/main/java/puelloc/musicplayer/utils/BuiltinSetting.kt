@@ -12,8 +12,7 @@ class BuiltinSetting {
     }
 
     companion object {
-        const val USED_AUDIO_ENCODE = AudioFormat.ENCODING_PCM_16BIT
-        const val USED_SAMPLE_RATE = 8000
+        const val USED_SAMPLE_RATE = 44100
 
         const val BUFFER_SIZE_IN_BYTES = 1024
 
@@ -21,6 +20,6 @@ class BuiltinSetting {
 
         val BLUETOOTH_RFCOMM_UUID: UUID = UUID.fromString("38400000-8cf0-11bd-b23e-10b96e4ef00e")
 
-        val PLAYLIST_RECURSIVE_BUILD_FROM_FLODER = false
+        const val PLAYLIST_RECURSIVE_BUILD_FROM_FOLDER = false
     }
 }

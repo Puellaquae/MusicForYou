@@ -24,6 +24,7 @@ import puelloc.musicplayer.entity.Song
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.utils.SongUtil.Companion.getMetadataBuilder
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
+import java.util.*
 
 class MediaPlaybackService : MediaBrowserServiceCompat() {
     private lateinit var mediaSession: MediaSessionCompat
@@ -37,14 +38,17 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         Log.d(TAG, "${it?.name} playing: ${playbackQueueViewModel.playing.value}")
         if (it != null) {
             if (it == prepareSong) {
-                if (mediaPlayer.isPlaying) {
-                    playbackQueueViewModel.playing.postValue(false)
+                if (playbackQueueViewModel.playing.value == false) {
                     pause()
                 } else {
-                    playbackQueueViewModel.playing.postValue(true)
+                    if (playbackQueueViewModel.needRestart.value == true) {
+                        seekTo(0L)
+                        playbackQueueViewModel.needRestart.postValue(false)
+                    }
                     play()
                 }
             } else {
+                pause()
                 prepare()
                 if (playbackQueueViewModel.playing.value == true) {
                     play()
@@ -52,6 +56,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             }
         }
     }
+    private lateinit var timer: Timer
 
     companion object {
         private val TAG = this::class.java.declaringClass.simpleName
@@ -110,6 +115,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         mediaPlayer.setOnCompletionListener {
             skipToNext()
         }
+        timer = Timer()
+
         playbackQueueViewModel.currentSong.observeForever(currentSongObserver)
     }
 
@@ -123,6 +130,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         Log.d(TAG, "onDestroy")
         super.onDestroy()
         mediaPlayer.release()
+        timer.cancel()
+        timer.purge()
         playbackQueueViewModel.currentSong.removeObserver(currentSongObserver)
     }
 
@@ -179,6 +188,12 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             registerReceiver(noisyAudioStreamReceiver, intentFilter)
             playbackQueueViewModel.playing.postValue(true)
             mediaPlayer.start()
+            timer = Timer()
+            timer.scheduleAtFixedRate(object : TimerTask() {
+                override fun run() {
+                    playbackQueueViewModel.currentPosition.postValue(mediaPlayer.currentPosition)
+                }
+            }, 0, 1000)
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
                 setActions(PLAYBACK_ACTION)
                 setState(
@@ -196,6 +211,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         prepareSong = null
         playbackQueueViewModel.playing.postValue(false)
         mediaPlayer.reset()
+        timer.cancel()
+        timer.purge()
         unregisterReceiver(noisyAudioStreamReceiver)
         mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
             setActions(PLAYBACK_ACTION)
@@ -212,6 +229,8 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     fun pause() {
         if (mediaPlayer.isPlaying) {
             mediaPlayer.pause()
+            timer.cancel()
+            timer.purge()
             playbackQueueViewModel.playing.postValue(false)
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
                 setActions(PLAYBACK_ACTION)

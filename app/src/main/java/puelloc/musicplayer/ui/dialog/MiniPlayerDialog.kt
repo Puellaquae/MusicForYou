@@ -7,6 +7,7 @@ import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.text.TextUtils
+import android.util.Log
 import android.view.Window
 import android.widget.SeekBar
 import androidx.fragment.app.DialogFragment
@@ -33,15 +34,25 @@ class MiniPlayerDialog(private val song: Song) : DialogFragment() {
         mediaPlayer.setDataSource(song.path)
         mediaPlayer.prepare()
         mediaPlayer.start()
-        mediaPlayer.duration
+        var inSeeking = false
         timer = Timer()
         timer.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
-                binding.seekBar.post {
-                    binding.seekBar.setProgress(mediaPlayer.currentPosition, true)
+                if (!inSeeking) {
+                    binding.seekBar.post {
+                        binding.seekBar.setProgress(mediaPlayer.currentPosition, true)
+                    }
                 }
             }
         }, 0, 1000)
+
+        mediaPlayer.setOnCompletionListener {
+            playing = false
+            binding.playPause.setBackgroundResource(R.drawable.ic_outline_play_arrow_24)
+            mediaPlayer.pause()
+            it.seekTo(0)
+        }
+
         binding.apply {
             itemTitle.text = song.name
             itemSubtitle.text = song.albumName
@@ -53,29 +64,37 @@ class MiniPlayerDialog(private val song: Song) : DialogFragment() {
                     playing = false
                     playPause.setBackgroundResource(R.drawable.ic_outline_play_arrow_24)
                     mediaPlayer.pause()
-                    itemTitle.ellipsize = TextUtils.TruncateAt.MARQUEE
                 } else {
                     playing = true
                     playPause.setBackgroundResource(R.drawable.ic_baseline_pause_24)
                     mediaPlayer.start()
-                    itemTitle.ellipsize = TextUtils.TruncateAt.END
                 }
             }
             val aSec = (song.duration / 1000) % 60
             val aMin = (song.duration / 1000) / 60
-            timeAll.text = "$aMin:${String.format("%02d", aSec)}"
+            timeAll.text = getString(R.string.song_time, aMin, aSec)
             seekBar.max = song.duration.toInt()
 
             val mediaExtractor = MediaExtractor()
             songInfo.text = try {
                 mediaExtractor.setDataSource(song.path)
                 val format = mediaExtractor.getTrackFormat(0)
-                val bitRate = format.getInteger(MediaFormat.KEY_BIT_RATE)
+                val bitRate = if (format.containsKey(MediaFormat.KEY_BIT_RATE)) {
+                    format.getInteger(MediaFormat.KEY_BIT_RATE)
+                } else {
+                    val m = MediaMetadataRetriever()
+                    m.setDataSource(song.path)
+                    Integer.valueOf(
+                        m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE) ?: "0"
+                    )
+                }
                 val sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-                "${bitRate / 1000}KBPS • ${sampleRate.toDouble() / 1000.0}KHz"
+                "${bitRate / 1000} kbps • ${sampleRate.toDouble() / 1000.0} kHz"
             } catch (e: IOException) {
                 ""
             }
+
+            var seekBarProcess = 0
 
             seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(
@@ -83,20 +102,19 @@ class MiniPlayerDialog(private val song: Song) : DialogFragment() {
                     progress: Int,
                     fromUser: Boolean
                 ) {
-                    if (fromUser) {
-                        mediaPlayer.seekTo(progress)
-                    }
+                    seekBarProcess = progress
                     val sec = (progress / 1000) % 60
                     val min = (progress / 1000) / 60
-                    timeNow.text = "$min:${String.format("%02d", sec)}"
+                    timeNow.text = getString(R.string.song_time, min, sec)
                 }
 
                 override fun onStartTrackingTouch(seekbar: SeekBar?) {
-
+                    inSeeking = true
                 }
 
                 override fun onStopTrackingTouch(seekbar: SeekBar?) {
-
+                    inSeeking = false
+                    mediaPlayer.seekTo(seekBarProcess)
                 }
             })
 
@@ -113,7 +131,7 @@ class MiniPlayerDialog(private val song: Song) : DialogFragment() {
             val dialog = MaterialAlertDialogBuilder(activity)
                 .setView(binding.root)
                 .create().apply {
-                    requestWindowFeature(Window.FEATURE_NO_TITLE);
+                    requestWindowFeature(Window.FEATURE_NO_TITLE)
                 }
             dialog
         } ?: throw IllegalStateException("Activity cannot be null")

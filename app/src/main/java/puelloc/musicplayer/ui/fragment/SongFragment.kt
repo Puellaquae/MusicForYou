@@ -15,22 +15,24 @@ import puelloc.musicplayer.databinding.FragmentSongBinding
 import puelloc.musicplayer.entity.Song
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.trait.IHandleBackPress
+import puelloc.musicplayer.trait.IHandleFAB
 import puelloc.musicplayer.trait.IHandleMenuItemClick
 import puelloc.musicplayer.ui.dialog.MiniPlayerDialog
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog
 import puelloc.musicplayer.ui.dialog.PickPlaylistDialog.Companion.PICK_PLAYLIST_DIALOG_TAG
+import puelloc.musicplayer.ui.viewholder.SimpleItemViewHolder
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
 import puelloc.musicplayer.viewmodel.MainActivityViewModel.Companion.MUSIC_LIBRARY_SHOW_PLAYLISTS
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import kotlin.properties.Delegates
 
-class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
+class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick, IHandleFAB {
 
     companion object {
         const val PLAYLIST_ID_BUNDLE_KEY = "playlistId"
         const val UNREACHABLE = -1L
-        private val TAG = SongFragment::class.java.simpleName
+        private const val TAG = "SongFragment"
     }
 
     private var _binding: FragmentSongBinding? = null
@@ -43,7 +45,7 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
     private val playlistViewModel: PlaylistViewModel by activityViewModels()
     private lateinit var playbackQueueViewModel: PlaybackQueueViewModel
     private val mainActivityViewModel: MainActivityViewModel by activityViewModels()
-    private lateinit var songAdapter: SelectableItemAdapter<Song>
+    private lateinit var songAdapter: SelectableItemAdapter<Song, SimpleItemViewHolder<Song>.ViewHolder>
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -60,21 +62,23 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
         songAdapter = SelectableItemAdapter(
             binding.musicList,
             { it.songId },
-            { it.name },
-            { it.artistName },
-            { AudioCover(it.path) },
-            R.drawable.ic_baseline_music_note_24
-        ) { song ->
-            if (true) {
-                val miniPlayerDialog = MiniPlayerDialog(song)
-                miniPlayerDialog.show(parentFragmentManager, "MiniPlayerDialog")
-            } else {
-                playbackQueueViewModel.playPlaylist(
-                    songAdapter.currentList.map { it.songId },
-                    song.songId
-                )
+            SimpleItemViewHolder(
+                { it.name },
+                { it.artistName },
+                { AudioCover(it.path) },
+                R.drawable.ic_baseline_music_note_24
+            ) { song ->
+                if (true) {
+                    val miniPlayerDialog = MiniPlayerDialog(song)
+                    miniPlayerDialog.show(parentFragmentManager, "MiniPlayerDialog")
+                } else {
+                    playbackQueueViewModel.playPlaylist(
+                        songAdapter.currentList.map { it.songId },
+                        song.songId
+                    )
+                }
             }
-        }
+        )
         currentPlaylistId =
             arguments?.getLong(PLAYLIST_ID_BUNDLE_KEY, UNREACHABLE) ?: UNREACHABLE
         if (currentPlaylistId == UNREACHABLE) {
@@ -144,5 +148,15 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick {
             }
             else -> false
         }
+    }
+
+    override fun onFABClick(): Boolean {
+        if (songAdapter.currentList.isNotEmpty()) {
+            playbackQueueViewModel.playPlaylist(
+                songAdapter.currentList.map { it.songId },
+                songAdapter.currentList.first().songId
+            )
+        }
+        return true
     }
 }

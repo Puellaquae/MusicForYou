@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
         val FRAGMENTS = listOf(
             { ForYouFragment() } to R.id.nav_for_you,
             { PlaybackQueueFragment() } to R.id.nav_song,
-            { MusicLibraryFragment() } to R.id.nav_musiclibrary,
+            { MusicLibraryFragment() } to R.id.nav_music_library,
         )
 
         val BOTTOM_NAVIGATION_ICON = mapOf(
@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
                     to R.drawable.ic_baseline_star_24),
             R.id.nav_song to (R.drawable.ic_outline_music_note_24
                     to R.drawable.ic_baseline_music_note_24),
-            R.id.nav_musiclibrary to (R.drawable.ic_outline_library_music_24
+            R.id.nav_music_library to (R.drawable.ic_outline_library_music_24
                     to R.drawable.ic_baseline_library_music_24)
         )
 
@@ -220,8 +220,8 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
                     toolbar.setNavigationIcon(it.first!!)
                 }
                 toolbar.menu.clear()
-                it.second?.let {
-                    toolbar.inflateMenu(it)
+                it.second?.let { menu ->
+                    toolbar.inflateMenu(menu)
                 }
             }
 

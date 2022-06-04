@@ -20,9 +20,8 @@ class NewPlaylistDialog : DialogFragment() {
             val dialog = MaterialAlertDialogBuilder(it)
                 .setTitle(R.string.new_playlist)
                 .setView(binding.root)
-                .setNeutralButton(R.string.cancel) { _, _ ->
-                    // Do Nothing
-                }.setPositiveButton(R.string.ok) { _, _ ->
+                .setNeutralButton(R.string.cancel, null)
+                .setPositiveButton(R.string.ok) { _, _ ->
                     val name = binding.nameText.text.toString()
                     if (!TextUtils.isEmpty(name)) {
                         playlistViewModel.newPlaylist(name)
