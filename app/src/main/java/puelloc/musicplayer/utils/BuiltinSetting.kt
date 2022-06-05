@@ -1,6 +1,7 @@
 package puelloc.musicplayer.utils
 
 import android.media.AudioFormat
+import android.media.AudioRecord
 import java.util.*
 
 class BuiltinSetting {
@@ -12,9 +13,9 @@ class BuiltinSetting {
     }
 
     companion object {
-        const val USED_SAMPLE_RATE = 44100
+        const val AUDIO_CAPTURE_SAMPLE_RATE = 44100
 
-        const val BUFFER_SIZE_IN_BYTES = 1024
+        val BUFFER_SIZE_IN_BYTES = AudioRecord.getMinBufferSize(AUDIO_CAPTURE_SAMPLE_RATE, 2, AudioFormat.ENCODING_PCM_16BIT)
 
         val BLUETOOTH_USE: BluetoothProtocols = BluetoothProtocols.RFCOMM_INSECURE
 

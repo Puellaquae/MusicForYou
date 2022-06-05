@@ -16,12 +16,15 @@ import android.os.Binder
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.collection.CircularArray
 import androidx.core.app.NotificationCompat
 import puelloc.musicplayer.R
-import puelloc.musicplayer.ui.dialog.BluetoothListenerDialog
+import puelloc.musicplayer.utils.AACUtils
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BUFFER_SIZE_IN_BYTES
-import puelloc.musicplayer.utils.BuiltinSetting.Companion.USED_SAMPLE_RATE
+import puelloc.musicplayer.utils.BuiltinSetting.Companion.AUDIO_CAPTURE_SAMPLE_RATE
 import puelloc.musicplayer.utils.VersionUtil.Companion.ANDROID_10
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import kotlin.concurrent.thread
 
@@ -34,6 +37,8 @@ class AudioCaptureService : Service() {
     private lateinit var audioCaptureThread: Thread
     private var audioRecord: AudioRecord? = null
     private lateinit var mediaCodec: MediaCodec
+
+    private val circularArray = CircularArray<ByteArray>()
 
     var socket: BluetoothSocket? = null
     var onSocketError: ((e: IOException) -> Unit)? = null
@@ -98,16 +103,88 @@ class AudioCaptureService : Service() {
          */
         val audioFormat = AudioFormat.Builder()
             .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-            .setSampleRate(USED_SAMPLE_RATE)
+            .setSampleRate(AUDIO_CAPTURE_SAMPLE_RATE)
             .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
             .build()
 
         mediaCodec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
+        mediaCodec.setCallback(object : MediaCodec.Callback() {
+            override fun onInputBufferAvailable(codec: MediaCodec, inputIndex: Int) {
+                if (!circularArray.isEmpty) {
+                    val inputBuffer = codec.getInputBuffer(inputIndex)
+                    val buffer = circularArray.popFirst()
+                    inputBuffer?.clear()
+                    inputBuffer?.put(buffer)
+                    codec.queueInputBuffer(inputIndex, 0, buffer.size, 0, 0)
+                    // Log.d(TAG, "mediacodec input ${buffer.size}")
+                } else {
+                    codec.queueInputBuffer(inputIndex, 0, 0, 0, 0)
+                }
+            }
+
+            override fun onOutputBufferAvailable(
+                codec: MediaCodec,
+                outputIndex: Int,
+                bufferInfo: MediaCodec.BufferInfo
+            ) {
+                val outputBuffer = codec.getOutputBuffer(outputIndex)
+                if (outputBuffer != null) {
+                    try {
+                        val outData = if (false) {
+                            val data = ByteArray(bufferInfo.size + 7)
+                            outputBuffer.position(bufferInfo.offset)
+                            outputBuffer.limit(bufferInfo.offset + bufferInfo.size)
+                            outputBuffer.get(data, 7, bufferInfo.size)
+                            outputBuffer.position(bufferInfo.offset)
+                            AACUtils.addADTS(data)
+                            data
+                        } else {
+                            val data = ByteArray(bufferInfo.size)
+                            outputBuffer.position(bufferInfo.offset)
+                            outputBuffer.limit(bufferInfo.offset + bufferInfo.size)
+                            outputBuffer.get(data)
+                            outputBuffer.position(bufferInfo.offset)
+                            data
+                        }
+                        socket?.outputStream?.write(outData)
+                        // Log.d(TAG, "send ${data.size}")
+                    } catch (e: IOException) {
+                        socket = null
+                        onSocketError?.let { it(e) }
+                        onSocketError = null
+                        Log.w(TAG, "send to bluetooth socket fail", e)
+                    }
+                } else {
+                    Log.d(TAG, "null output buffer")
+                }
+                outputBuffer?.clear()
+                codec.releaseOutputBuffer(outputIndex, false)
+            }
+
+            override fun onError(p0: MediaCodec, e: MediaCodec.CodecException) {
+                Log.e(TAG, "mediaCode", e)
+                // TODO("Not yet implemented")
+            }
+
+            override fun onOutputFormatChanged(p0: MediaCodec, format: MediaFormat) {
+                Log.d(TAG, "format: ${format.getByteBuffer("csd-0")}")
+                // TODO("Not yet implemented")
+            }
+
+        })
         mediaCodec.configure(
-            MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, USED_SAMPLE_RATE, 1)
+            MediaFormat.createAudioFormat(
+                MediaFormat.MIMETYPE_AUDIO_AAC,
+                AUDIO_CAPTURE_SAMPLE_RATE,
+                2
+            )
                 .apply {
                     setInteger(MediaFormat.KEY_BIT_RATE, 320000)
-                    setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, BUFFER_SIZE_IN_BYTES)
+                    setInteger(
+                        MediaFormat.KEY_AAC_PROFILE,
+                        MediaCodecInfo.CodecProfileLevel.AACObjectLC
+                    )
+                    setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, BUFFER_SIZE_IN_BYTES * 2)
                 },
             null,
             null,
@@ -135,44 +212,14 @@ class AudioCaptureService : Service() {
         val capturedAudioSamples = ByteArray(BUFFER_SIZE_IN_BYTES)
 
         while (!audioCaptureThread.isInterrupted) {
-            val inputIndex = mediaCodec.dequeueInputBuffer(100)
-            if (inputIndex < 0) {
-                Log.d(TAG, "no InputIndex")
-                continue
-            }
-            val inputBuffer = mediaCodec.getInputBuffer(inputIndex)
             val numBytes =
                 audioRecord?.read(
                     capturedAudioSamples,
                     0,
-                    BUFFER_SIZE_IN_BYTES,
-                    READ_NON_BLOCKING
+                    BUFFER_SIZE_IN_BYTES
                 )
                     ?: 0
-            inputBuffer?.clear()
-            inputBuffer?.limit(capturedAudioSamples.size)
-            inputBuffer?.put(capturedAudioSamples)
-            mediaCodec.queueInputBuffer(inputIndex, 0, numBytes, 0, 0)
-            val bufferInfo = MediaCodec.BufferInfo()
-            val outputIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, 100)
-            if (outputIndex < 0) {
-                Log.d(TAG, "no OutputIndex")
-                continue
-            }
-            val outBuffer = mediaCodec.getOutputBuffer(outputIndex)
-            try {
-                if (outBuffer != null) {
-                    Log.d(TAG, "socket out ${bufferInfo.size}")
-                    socket?.outputStream?.write(outBuffer.array(), 0, bufferInfo.size)
-                } else {
-                    Log.d(TAG, "null outBuffer")
-                }
-            } catch (e: IOException) {
-                socket = null
-                onSocketError?.let { it(e) }
-                onSocketError = null
-                Log.w(TAG, "send to bluetooth socket fail", e)
-            }
+            circularArray.addLast(capturedAudioSamples.copyOf(numBytes))
         }
     }
 
