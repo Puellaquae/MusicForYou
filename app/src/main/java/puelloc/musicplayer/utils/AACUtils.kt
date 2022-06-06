@@ -25,14 +25,11 @@ class AACUtils {
             if (frame[0 + offset] != 0xFF.toByte() && frame[1 + offset] != 0xF9.toByte() && frame[6 + offset] != 0xFC.toByte()) {
                 return -1
             }
-            var len = 0
-            val fBit = frame[3 + offset]
-            val mBit = frame[4 + offset]
-            val bBit = frame[5 + offset]
-            len += (bBit.toInt() shr 5)
-            len += (mBit.toInt() shl 3)
-            len += ((fBit.toInt() and 3) shl 11)
-            return len
+
+            val fBit = frame[3 + offset].toInt() and 0xFF
+            val mBit = frame[4 + offset].toInt() and 0xFF
+            val bBit = frame[5 + offset].toInt() and 0xFF
+            return (bBit shr 5) + (mBit shl 3) + ((fBit and 3) shr 11)
         }
     }
 }

@@ -2,6 +2,8 @@ package puelloc.musicplayer.utils
 
 import android.media.AudioFormat
 import android.media.AudioRecord
+import android.media.MediaFeature
+import android.media.MediaFormat
 import java.util.*
 
 class BuiltinSetting {

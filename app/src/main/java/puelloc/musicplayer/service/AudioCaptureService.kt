@@ -96,7 +96,7 @@ class AudioCaptureService : Service() {
         val config = AudioPlaybackCaptureConfiguration.Builder(mediaProjection!!)
             .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
             .build()
-
+        //val aacFile = FileOutputStream(File(filesDir, "test.aac"))
         /**
          * Using hardcoded values for the audio format, Mono PCM samples with a sample rate of 8000Hz
          * These can be changed according to your application's needs
@@ -130,7 +130,7 @@ class AudioCaptureService : Service() {
                 val outputBuffer = codec.getOutputBuffer(outputIndex)
                 if (outputBuffer != null) {
                     try {
-                        val outData = if (false) {
+                        val outData = if (true) {
                             val data = ByteArray(bufferInfo.size + 7)
                             outputBuffer.position(bufferInfo.offset)
                             outputBuffer.limit(bufferInfo.offset + bufferInfo.size)
@@ -147,6 +147,8 @@ class AudioCaptureService : Service() {
                             data
                         }
                         socket?.outputStream?.write(outData)
+                        //aacFile.write(outData)
+                        //aacFile.flush()
                         // Log.d(TAG, "send ${data.size}")
                     } catch (e: IOException) {
                         socket = null
