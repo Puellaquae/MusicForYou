@@ -25,6 +25,7 @@ import puelloc.musicplayer.databinding.FragmentForYouBinding
 import puelloc.musicplayer.service.AudioCaptureService
 import puelloc.musicplayer.ui.dialog.BluetoothClientDialog
 import puelloc.musicplayer.ui.dialog.BluetoothListenerDialog
+import puelloc.musicplayer.ui.dialog.BluetoothListenerDialogOld
 import puelloc.musicplayer.ui.dialog.NFCDialog
 import puelloc.musicplayer.ui.viewholder.SimpleItemViewHolder
 import puelloc.musicplayer.utils.PermissionUtil.Companion.hasPermission
@@ -174,6 +175,16 @@ class ForYouFragment : Fragment() {
                 requireBluetoothConnectListener.launch(Manifest.permission.BLUETOOTH_CONNECT)
             } else {
                 BluetoothListenerDialog().show(
+                    parentFragmentManager,
+                    "BluetoothListenerDialog"
+                )
+            }
+        }
+        binding.buttonBluetoothOld.setOnClickListener {
+            if (VersionUtil.S) {
+                requireBluetoothConnectListener.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            } else {
+                BluetoothListenerDialogOld().show(
                     parentFragmentManager,
                     "BluetoothListenerDialog"
                 )

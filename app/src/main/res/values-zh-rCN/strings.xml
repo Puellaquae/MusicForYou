@@ -47,7 +47,7 @@
     <string name="connected_audio_transfer_fail">与音频转发者连接失败</string>
     <string name="connected_audio_receiver_fail">与音频接收者连接失败</string>
     <string name="audio_receiver_disconnected">与音频接收者断开连接</string>
-    <string name="bluetooth_listen">开始音频接收</string>
+    <string name="bluetooth_listen">音频接收</string>
     <string name="media_playback_service">音乐播放服务</string>
     <string name="host_apdu_service">NFC卡模拟服务</string>
 </resources>

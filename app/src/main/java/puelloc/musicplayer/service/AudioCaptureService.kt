@@ -165,12 +165,10 @@ class AudioCaptureService : Service() {
 
             override fun onError(p0: MediaCodec, e: MediaCodec.CodecException) {
                 Log.e(TAG, "mediaCode", e)
-                // TODO("Not yet implemented")
             }
 
             override fun onOutputFormatChanged(p0: MediaCodec, format: MediaFormat) {
                 Log.d(TAG, "format: ${format.getByteBuffer("csd-0")}")
-                // TODO("Not yet implemented")
             }
 
         })

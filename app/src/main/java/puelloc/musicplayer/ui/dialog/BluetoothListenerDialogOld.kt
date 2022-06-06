@@ -23,13 +23,15 @@ import puelloc.musicplayer.utils.BuiltinSetting.Companion.AUDIO_CAPTURE_SAMPLE_R
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BLUETOOTH_RFCOMM_UUID
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BLUETOOTH_USE
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BUFFER_SIZE_IN_BYTES
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentLinkedQueue
 
 
-class BluetoothListenerDialog : DialogFragment() {
+class BluetoothListenerDialogOld : DialogFragment() {
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var acceptThread: AcceptThread
     private var connectedThread: ConnectedThread? = null
@@ -115,12 +117,20 @@ class BluetoothListenerDialog : DialogFragment() {
         private val inStream: InputStream = socket.inputStream.apply {
             buffered(BUFFER_SIZE_IN_BYTES * 4)
         }
-        private val buffer: ByteArray = ByteArray(BUFFER_SIZE_IN_BYTES)
+        private val buffer: ByteArray =
+            ByteArray(BUFFER_SIZE_IN_BYTES)
         private lateinit var audioTrack: AudioTrack
         private lateinit var mediaCodec: MediaCodec
         private val availableAAC = ConcurrentLinkedQueue<ByteArray>()
         private val availableInputIndex = ConcurrentLinkedQueue<Int>()
         private val availablePCM = ConcurrentLinkedQueue<ByteArray>()
+
+        private val aacBuffer: ByteArray = ByteArray(128 * 1024 * 1024) // A big buffer
+        private var aacBufferLastPos = 0
+        private var aacBufferReadPos = 0
+
+        //val pcmFile = FileOutputStream(File(requireContext().filesDir, "test.pcm"))
+        //val aacFile = FileOutputStream(File(requireContext().filesDir, "test.aac"))
 
         private var needStop = false
 
@@ -131,6 +141,44 @@ class BluetoothListenerDialog : DialogFragment() {
                     val data = availablePCM.poll()
                     if (data != null) {
                         audioTrack.write(data, 0, data.size)
+                    } else {
+                        //Log.d(TAG, "audioTrack need data!")
+                    }
+                }
+            }
+        }
+
+        private val frameThread = object : Thread() {
+            override fun run() {
+                setThreadPriority(THREAD_PRIORITY_AUDIO)
+                while (!needStop) {
+                    if (aacBufferReadPos + 7 < aacBufferLastPos) {
+                        val frameSize = AACUtils.frameSize(aacBuffer, aacBufferReadPos)
+                        //Log.d(TAG, "frame$frameSize")
+                        if (frameSize < 7) {
+                            // Log.d(TAG, "skip frame $aacBufferReadPos ${aacBuffer[aacBufferReadPos]}")
+                            aacBufferReadPos++
+                        } else if (aacBufferReadPos + frameSize <= aacBufferLastPos) {
+                            val data =
+                                aacBuffer.copyOfRange(
+                                    aacBufferReadPos + 7,
+                                    aacBufferReadPos + frameSize
+                                )
+                            aacBufferReadPos += frameSize
+                            val index = availableInputIndex.poll()
+                            //if (index != null && data != null) {
+                            if (index != null) {
+                                val inputBuffer = mediaCodec.getInputBuffer(index)
+                                inputBuffer?.clear()
+                                inputBuffer?.put(data)
+                                //Log.d(TAG, "mediaCodec input#$index ${data.size}")
+                                mediaCodec.queueInputBuffer(index, 0, data.size, 0, 0)
+                            } else {
+                                availableAAC.add(data)
+                            }
+                        }
+                    } else {
+                        //Log.d(TAG, "buffer no data")
                     }
                 }
             }
@@ -142,11 +190,21 @@ class BluetoothListenerDialog : DialogFragment() {
                 MediaCodec.createDecoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
             mediaCodec.setCallback(object : MediaCodec.Callback() {
                 override fun onInputBufferAvailable(codec: MediaCodec, inputIndex: Int) {
+                    if (needStop) {
+                        codec.queueInputBuffer(
+                            inputIndex,
+                            0,
+                            0,
+                            0,
+                            MediaCodec.BUFFER_FLAG_END_OF_STREAM
+                        )
+                    }
                     val data = availableAAC.poll()
                     if (data == null) {
                         availableInputIndex.add(inputIndex)
                     } else {
                         val inputBuffer = codec.getInputBuffer(inputIndex)
+                        // Log.d(TAG, "mediaCodec input#$inputIndex ${data.size}")
                         inputBuffer?.clear()
                         inputBuffer?.put(data)
                         codec.queueInputBuffer(inputIndex, 0, data.size, 0, 0)
@@ -160,11 +218,14 @@ class BluetoothListenerDialog : DialogFragment() {
                 ) {
                     val outputBuffer = codec.getOutputBuffer(outputIndex)
                     if (outputBuffer != null) {
+                        // Log.d(TAG, "mediaCodec output ${bufferInfo.size}")
                         val data = ByteArray(bufferInfo.size)
                         outputBuffer.position(bufferInfo.offset)
                         outputBuffer.limit(bufferInfo.offset + bufferInfo.size)
                         outputBuffer.get(data)
                         outputBuffer.position(bufferInfo.size)
+                        //pcmFile.write(data)
+                        //pcmFile.flush()
                         availablePCM.add(data)
                     }
                     codec.releaseOutputBuffer(outputIndex, false)
@@ -176,6 +237,7 @@ class BluetoothListenerDialog : DialogFragment() {
                         "mediaCodec ${e.diagnosticInfo} recover${e.isRecoverable} trans${e.isTransient}",
                         e
                     )
+                    // throw e
                 }
 
                 override fun onOutputFormatChanged(p0: MediaCodec, p1: MediaFormat) {
@@ -199,7 +261,7 @@ class BluetoothListenerDialog : DialogFragment() {
                             MediaCodecInfo.CodecProfileLevel.AACObjectLC
                         )
                         setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, BUFFER_SIZE_IN_BYTES * 4)
-                        // setInteger(MediaFormat.KEY_IS_ADTS, 1)
+                        //setInteger(MediaFormat.KEY_IS_ADTS, 1)
                         setByteBuffer(
                             "csd-0",
                             ByteBuffer.wrap(arrayOf(0x12.toByte(), 0x10.toByte()).toByteArray())
@@ -226,35 +288,15 @@ class BluetoothListenerDialog : DialogFragment() {
             }.build()
             audioTrack.play()
             playingThread.start()
+            frameThread.start()
             while (true) {
                 try {
-                    var needRead = 7
-                    var offset = 0
-                    var actualRead = inStream.read(buffer, offset, needRead)
-                    while (actualRead < needRead) {
-                        offset += actualRead
-                        needRead -= actualRead
-                        actualRead = inStream.read(buffer, offset, needRead)
-                    }
-                    val frameSize = AACUtils.frameSize(buffer)
-                    needRead = frameSize - 7
-                    offset = 7
-                    actualRead = inStream.read(buffer, offset, needRead)
-                    while (actualRead < needRead) {
-                        offset += actualRead
-                        needRead -= actualRead
-                        actualRead = inStream.read(buffer, offset, needRead)
-                    }
-                    val data = buffer.copyOfRange(7, frameSize)
-                    val index = availableInputIndex.poll()
-                    if (index != null) {
-                        val inputBuffer = mediaCodec.getInputBuffer(index)
-                        inputBuffer?.clear()
-                        inputBuffer?.put(data)
-                        mediaCodec.queueInputBuffer(index, 0, data.size, 0, 0)
-                    } else {
-                        availableAAC.add(data)
-                    }
+                    val numBytes = inStream.read(buffer)
+                    //aacFile.write(buffer, 0, numBytes)
+                    //aacFile.flush()
+                    buffer.copyInto(aacBuffer, aacBufferLastPos, 0, numBytes)
+                    aacBufferLastPos += numBytes
+                    //Log.d(TAG, "av$aacBufferLastPos")
                 } catch (e: IOException) {
                     binding.message.post {
                         binding.message.setText(R.string.audio_transfer_disconnected)
@@ -269,7 +311,9 @@ class BluetoothListenerDialog : DialogFragment() {
         fun cancel() {
             try {
                 needStop = true
-                mediaCodec.flush()
+                //aacFile.write(aacBuffer, 0, aacBufferLastPos)
+                //aacFile.flush()
+                testBuffer()
                 socket.close()
                 audioTrack.stop()
                 audioTrack.release()
@@ -278,6 +322,18 @@ class BluetoothListenerDialog : DialogFragment() {
             } catch (e: Exception) {
                 Log.e(TAG, "Could not close", e)
             }
+        }
+
+        fun testBuffer() {
+            var curPos = 0
+            while (curPos < aacBufferLastPos) {
+                val frameSize = AACUtils.frameSize(aacBuffer, curPos)
+                if (frameSize < 7) {
+                    throw RuntimeException()
+                }
+                curPos += frameSize
+            }
+            Log.d(TAG, "test pass")
         }
     }
 
