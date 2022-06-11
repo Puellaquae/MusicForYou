@@ -26,6 +26,7 @@ import puelloc.musicplayer.utils.VersionUtil.Companion.ANDROID_10
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
 
 @RequiresApi(ANDROID_10)
@@ -38,7 +39,8 @@ class AudioCaptureService : Service() {
     private var audioRecord: AudioRecord? = null
     private lateinit var mediaCodec: MediaCodec
 
-    private val circularArray = CircularArray<ByteArray>()
+    private val availablePCM = ConcurrentLinkedQueue<ByteArray>()
+    private val availableInput = ConcurrentLinkedQueue<Int>()
 
     var socket: BluetoothSocket? = null
     var onSocketError: ((e: IOException) -> Unit)? = null
@@ -110,15 +112,14 @@ class AudioCaptureService : Service() {
         mediaCodec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
         mediaCodec.setCallback(object : MediaCodec.Callback() {
             override fun onInputBufferAvailable(codec: MediaCodec, inputIndex: Int) {
-                if (!circularArray.isEmpty) {
+                val data = availablePCM.poll()
+                if (data != null) {
                     val inputBuffer = codec.getInputBuffer(inputIndex)
-                    val buffer = circularArray.popFirst()
                     inputBuffer?.clear()
-                    inputBuffer?.put(buffer)
-                    codec.queueInputBuffer(inputIndex, 0, buffer.size, 0, 0)
-                    // Log.d(TAG, "mediacodec input ${buffer.size}")
+                    inputBuffer?.put(data)
+                    codec.queueInputBuffer(inputIndex, 0, data.size, 0, 0)
                 } else {
-                    codec.queueInputBuffer(inputIndex, 0, 0, 0, 0)
+                    availableInput.add(inputIndex)
                 }
             }
 
@@ -219,7 +220,16 @@ class AudioCaptureService : Service() {
                     BUFFER_SIZE_IN_BYTES
                 )
                     ?: 0
-            circularArray.addLast(capturedAudioSamples.copyOf(numBytes))
+            val data = capturedAudioSamples.copyOf(numBytes)
+            val index = availableInput.poll()
+            if (index != null) {
+                val inputBuffer = mediaCodec.getInputBuffer(index)
+                inputBuffer?.clear()
+                inputBuffer?.put(data)
+                mediaCodec.queueInputBuffer(index, 0, data.size, 0, 0)
+            } else {
+                availablePCM.add(data)
+            }
         }
     }
 

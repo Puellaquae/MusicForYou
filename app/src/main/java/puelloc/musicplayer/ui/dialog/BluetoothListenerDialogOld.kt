@@ -23,8 +23,6 @@ import puelloc.musicplayer.utils.BuiltinSetting.Companion.AUDIO_CAPTURE_SAMPLE_R
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BLUETOOTH_RFCOMM_UUID
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BLUETOOTH_USE
 import puelloc.musicplayer.utils.BuiltinSetting.Companion.BUFFER_SIZE_IN_BYTES
-import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.nio.ByteBuffer

@@ -2,6 +2,7 @@
 
 ## TODO
 
+- **Bug Important** 手动点击下一首或上一首会异常跳歌
 - **Suspend** 解决歌单中歌曲顺序不按添加顺序显示的问题，SQL 默认查询的顺序是 unstable 的，需要额外记录顺序
 - 添加设置功能及其页面
 - **Suspend** 细化数据库查询得到的数据类型
@@ -29,6 +30,7 @@
 - **Feature** 为歌单歌曲列表页 FAB 添加播放歌单功能
 - **Feature** 如果当前播放列表自从载入后没有修改过（删除添加重排）就不触发自动保存
 - **Fine-Tuning** 使用 AAC-LC 传输音频数据
+- **Fine-Tuning** 使用 ConcurrentLinkedQueue 替代 CircularArray
 
 ## Some Ideas
 
