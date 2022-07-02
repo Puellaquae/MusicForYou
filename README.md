@@ -2,7 +2,6 @@
 
 ## TODO
 
-- **Bug Important** 手动点击下一首或上一首会异常跳歌
 - **Suspend** 解决歌单中歌曲顺序不按添加顺序显示的问题，SQL 默认查询的顺序是 unstable 的，需要额外记录顺序
 - 添加设置功能及其页面
 - **Suspend** 细化数据库查询得到的数据类型
@@ -31,6 +30,8 @@
 - **Feature** 如果当前播放列表自从载入后没有修改过（删除添加重排）就不触发自动保存
 - **Fine-Tuning** 使用 AAC-LC 传输音频数据
 - **Fine-Tuning** 使用 ConcurrentLinkedQueue 替代 CircularArray
+- **Fix** 下一首或上一首会异常跳歌，这个问题只会在长时间运行或多次切歌后触发。原因是播放下一首歌的 Prepare 时未清除定时器，而播放时又会额外添加一次定时器，定时器在 Preparing 阶段尝试获取播放进度而导致 MediaPlayer 状态错误而播放失败，直接歌曲播放结束触发跳转下一首。
+- **Fine-Tuning** 使用 SingleLiveEvent 管理播放控制事件，由 PlaybackQueueViewModel 管理播放控制细节逻辑。
 
 ## Some Ideas
 

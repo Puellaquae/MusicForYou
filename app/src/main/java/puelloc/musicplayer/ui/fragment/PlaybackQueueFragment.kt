@@ -11,6 +11,7 @@ import puelloc.musicplayer.R
 import puelloc.musicplayer.adapter.ItemAdapter
 import puelloc.musicplayer.adapter.ReorderableItemAdapter
 import puelloc.musicplayer.databinding.FragmentPlaybackQueueBinding
+import puelloc.musicplayer.enums.PlaybackEvent
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.pojo.relation.PlaybackQueueItemWithSong
 import puelloc.musicplayer.trait.IHandleFAB
@@ -57,11 +58,13 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick, IHandleFAB {
                 )
                 {
                     if (playbackQueueViewModel.currentItemId.value != it.queueItem.itemId) {
-                        playbackQueueViewModel.playing.postValue(true)
+                        playbackQueueViewModel.emit(
+                            PlaybackEvent.CHOOSE_SONG_AND_PLAY,
+                            it.queueItem.itemId
+                        )
                     } else {
-                        playbackQueueViewModel.playPause()
+                        playbackQueueViewModel.emit(PlaybackEvent.PLAY_PAUSE)
                     }
-                    playbackQueueViewModel.currentItemId.postValue(it.queueItem.itemId)
                 }
             ) {
             override fun onBindViewHolder(

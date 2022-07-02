@@ -11,7 +11,7 @@ class MediaCallback(private val mediaPlaybackService: MediaPlaybackService) : Me
 
     override fun onPlay() {
         super.onPlay()
-        mediaPlaybackService.play(true)
+        mediaPlaybackService.play()
         Log.d(TAG, "Play")
     }
 

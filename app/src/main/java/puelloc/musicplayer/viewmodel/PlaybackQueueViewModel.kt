@@ -10,6 +10,8 @@ import puelloc.musicplayer.db.AppDatabase
 import puelloc.musicplayer.entity.PlaybackQueueItem
 import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
+import puelloc.musicplayer.enums.PlaybackEvent
+import puelloc.musicplayer.utils.SingleLiveEvent
 
 class PlaybackQueueViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
@@ -24,6 +26,8 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
         }
 
         private val TAG = this::class.java.declaringClass.simpleName
+
+        private const val NONE_SONG_ITEM_ID = -1L
     }
 
     private val appDatabase =
@@ -40,10 +44,10 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun nextSong() {
+    private fun nextSong() {
         viewModelScope.launch(Dispatchers.IO) {
             // The initial state, try play the first song
-            if (currentItemId.value == 0L) {
+            if (currentItemId.value == NONE_SONG_ITEM_ID) {
                 firstSong()
             } else {
                 // get current item
@@ -59,32 +63,33 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                     if (next == null) {
                         firstSong()
                     } else {
-                        currentItemId.postValue(next.itemId!!)
+                        _currentItemId.postValue(next.itemId!!)
                     }
                 }
             }
+            //_event.postValue(PlaybackEvent.PREPARE_FOR_NEW_SONG)
         }
     }
 
     private suspend fun firstSong() {
         withContext(Dispatchers.IO) {
-            currentItemId.postValue(
-                playbackQueueDao.firstSongSync()?.queueItem?.itemId ?: 0L
+            _currentItemId.postValue(
+                playbackQueueDao.firstSongSync()?.queueItem?.itemId ?: NONE_SONG_ITEM_ID
             )
         }
     }
 
     private suspend fun lastSong() {
         withContext(Dispatchers.IO) {
-            currentItemId.postValue(
-                playbackQueueDao.lastSongSync()?.queueItem?.itemId ?: 0L
+            _currentItemId.postValue(
+                playbackQueueDao.lastSongSync()?.queueItem?.itemId ?: NONE_SONG_ITEM_ID
             )
         }
     }
 
-    fun previousSong() {
+    private fun previousSong() {
         viewModelScope.launch(Dispatchers.IO) {
-            if (currentItemId.value == 0L) {
+            if (currentItemId.value == NONE_SONG_ITEM_ID) {
                 lastSong()
             } else {
                 val currentItem = playbackQueueDao.getItemSync(currentItemId.value!!)
@@ -97,16 +102,18 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                     if (prev == null) {
                         lastSong()
                     } else {
-                        currentItemId.postValue(prev.itemId!!)
+                        _currentItemId.postValue(prev.itemId!!)
                     }
                 }
             }
+            //_event.postValue(PlaybackEvent.PREPARE_FOR_NEW_SONG)
         }
     }
 
     fun clearQueue() {
         viewModelScope.launch(Dispatchers.IO) {
             playbackQueueDao.clearQueue()
+            needAutoSave.postValue(false)
         }
     }
 
@@ -133,12 +140,13 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
             it.song.songId == songId
         }
         if (item != null) {
-            currentItemId.postValue(item.queueItem.itemId)
+            _currentItemId.postValue(item.queueItem.itemId)
         }
     }
 
     /**
      * will be changed in [deleteItemId], [moveItemAndInsert] and [appendSongs]
+     * reset in [playPlaylist], [clearQueue]
      */
     private val needAutoSave = MutableLiveData<Boolean>()
 
@@ -148,39 +156,34 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
     fun playPlaylist(songIds: List<Long>, songId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             if (playbackQueueDao.size() != 0 && needAutoSave.value == true) {
-                needAutoSave.postValue(false)
                 val playlistId =
                     playlistDao.rowIdToPlaylistId(playlistDao.insert(Playlist(name = "AutoSave")))
                 saveToPlaylistSync(playlistId)
                 playbackQueueDao.clearQueue()
             }
             playbackQueueDao.append(songIds)
-            playing.postValue(true)
-            needRestart.postValue(true)
+            needAutoSave.postValue(false)
             playSongIdSync(songId)
         }
     }
 
-    val currentItemId = MutableLiveData<Long>().apply {
-        postValue(0L)
+    private val _currentItemId = MutableLiveData<Long>().apply {
+        postValue(NONE_SONG_ITEM_ID)
     }
+
+    val currentItemId: LiveData<Long> = _currentItemId
 
     val currentSong = currentItemId.switchMap { id ->
         liveData {
             withContext(Dispatchers.IO) {
                 val song = playbackQueueDao.getSongSync(id)
-                emit(song?.song)
+                if (song != null) {
+                    emit(song.song)
+                    _event.postValue(PlaybackEvent.PREPARE_FOR_NEW_SONG)
+                }
             }
         }
     }
-
-    val playing = MutableLiveData<Boolean>()
-
-    fun playPause() {
-        playing.postValue(playing.value?.not())
-    }
-
-    val needRestart = MutableLiveData<Boolean>()
 
     fun moveItemAndInsert(item: PlaybackQueueItem, positionOrder: Long, insertBefore: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -205,4 +208,66 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
     val currentPosition = MutableLiveData<Int>().apply {
         postValue(0)
     }
+
+    private val _playing = MutableLiveData<Boolean>()
+
+    val playing: LiveData<Boolean> = _playing
+
+    fun emit(event: PlaybackEvent, arg: Any? = null) {
+        Log.d(TAG, "emit $event $arg")
+        when (event) {
+            PlaybackEvent.PLAY -> {
+                _playing.postValue(true)
+                if (_currentItemId.value == null || _currentItemId.value == NONE_SONG_ITEM_ID) {
+                    Log.d(TAG, "no current playing song, next song")
+                    nextSong()
+                } else {
+                    Log.d(TAG, "has current playing song")
+                    _event.postValue(PlaybackEvent.PLAY)
+                }
+            }
+            PlaybackEvent.PAUSE -> {
+                _playing.postValue(false)
+                _event.postValue(PlaybackEvent.PAUSE)
+            }
+            PlaybackEvent.STOP -> {
+                _playing.postValue(false)
+                _currentItemId.postValue(NONE_SONG_ITEM_ID)
+            }
+            PlaybackEvent.PLAY_PAUSE -> {
+                if (_playing.value == true) {
+                    emit(PlaybackEvent.PAUSE)
+                } else {
+                    emit(PlaybackEvent.PLAY)
+                }
+            }
+            PlaybackEvent.SKIP_PREV_SONG -> {
+                previousSong()
+            }
+            PlaybackEvent.SKIP_NEXT_SONG -> {
+                nextSong()
+            }
+            PlaybackEvent.SONG_PREPARED -> {
+                if (_playing.value == true) {
+                    _event.postValue(PlaybackEvent.PLAY)
+                }
+            }
+            PlaybackEvent.SONG_FINISHED -> {
+                nextSong()
+            }
+            PlaybackEvent.CHOOSE_SONG_AND_PLAY -> {
+                if (arg != null && arg is Long) {
+                    _playing.postValue(true)
+                    _currentItemId.postValue(arg)
+                }
+            }
+            PlaybackEvent.PREPARE_FOR_NEW_SONG -> {
+
+            }
+        }
+    }
+
+    private val _event = SingleLiveEvent<PlaybackEvent>()
+
+    val event: LiveData<PlaybackEvent> = _event
 }

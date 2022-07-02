@@ -21,6 +21,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import puelloc.musicplayer.entity.Song
+import puelloc.musicplayer.enums.PlaybackEvent
 import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.utils.SongUtil.Companion.getMetadataBuilder
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
@@ -34,28 +35,19 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     private lateinit var mediaPlayer: MediaPlayer
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
     private val noisyAudioStreamReceiver = BecomingNoisyReceiver()
-    private val currentSongObserver = Observer<Song?> {
-        Log.d(TAG, "${it?.name} playing: ${playbackQueueViewModel.playing.value}")
-        if (it != null) {
-            if (it == prepareSong) {
-                if (playbackQueueViewModel.playing.value == false) {
-                    pause()
-                } else {
-                    if (playbackQueueViewModel.needRestart.value == true) {
-                        seekTo(0L)
-                        playbackQueueViewModel.needRestart.postValue(false)
-                    }
-                    play()
-                }
-            } else {
-                pause()
-                prepare()
-                if (playbackQueueViewModel.playing.value == true) {
-                    play()
-                }
-            }
+    private val playbackEventObserver = Observer<PlaybackEvent> {
+        Log.d(TAG, "Playback action $it")
+        when (it) {
+            PlaybackEvent.PREPARE_FOR_NEW_SONG -> prepare()
+            PlaybackEvent.PLAY -> doPlay()
+            PlaybackEvent.PAUSE -> doPause()
+            else -> {}
         }
     }
+    private val currentSongObserver = Observer<Song> {
+        prepareSong = it
+    }
+
     private lateinit var timer: Timer
 
     companion object {
@@ -113,10 +105,14 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         mediaNotificationManager = MediaNotificationManager(this, mediaSession.sessionToken)
         mediaPlayer = MediaPlayer()
         mediaPlayer.setOnCompletionListener {
-            skipToNext()
+            playbackQueueViewModel.emit(PlaybackEvent.SONG_FINISHED)
+        }
+        mediaPlayer.setOnPreparedListener {
+            playbackQueueViewModel.emit(PlaybackEvent.SONG_PREPARED)
         }
         timer = Timer()
 
+        playbackQueueViewModel.event.observeForever(playbackEventObserver)
         playbackQueueViewModel.currentSong.observeForever(currentSongObserver)
     }
 
@@ -132,17 +128,19 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         mediaPlayer.release()
         timer.cancel()
         timer.purge()
+        playbackQueueViewModel.event.removeObserver(playbackEventObserver)
         playbackQueueViewModel.currentSong.removeObserver(currentSongObserver)
     }
 
     private var prepareSong: Song? = null
 
     private fun prepare() {
-        prepareSong = playbackQueueViewModel.currentSong.value
         prepareSong?.let {
+            timer.cancel()
+            timer.purge()
             mediaPlayer.reset()
             mediaPlayer.setDataSource(it.path)
-            mediaPlayer.prepare()
+            mediaPlayer.prepareAsync()
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
                 setActions(PLAYBACK_ACTION)
                 setState(
@@ -176,17 +174,13 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         }
     }
 
-    fun play(nextSongIfNeed: Boolean = false) {
-        if (prepareSong == null) {
-            prepare()
-        }
-        if (prepareSong == null && nextSongIfNeed) {
-            playbackQueueViewModel.playing.postValue(true)
-            skipToNext()
-        }
+    fun play() {
+        playbackQueueViewModel.emit(PlaybackEvent.PLAY)
+    }
+
+    private fun doPlay() {
         prepareSong?.let {
             registerReceiver(noisyAudioStreamReceiver, intentFilter)
-            playbackQueueViewModel.playing.postValue(true)
             mediaPlayer.start()
             timer = Timer()
             timer.scheduleAtFixedRate(object : TimerTask() {
@@ -209,8 +203,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     fun stop() {
         prepareSong?.let { mediaNotificationManager.updatePlay(false) }
         prepareSong = null
-        playbackQueueViewModel.playing.postValue(false)
-        mediaPlayer.reset()
+        mediaPlayer.stop()
         timer.cancel()
         timer.purge()
         unregisterReceiver(noisyAudioStreamReceiver)
@@ -223,15 +216,19 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             )
         }.build())
         mediaNotificationManager.stop()
+        playbackQueueViewModel.emit(PlaybackEvent.STOP)
         stopSelf()
     }
 
     fun pause() {
+        playbackQueueViewModel.emit(PlaybackEvent.PAUSE)
+    }
+
+    private fun doPause() {
         if (mediaPlayer.isPlaying) {
             mediaPlayer.pause()
             timer.cancel()
             timer.purge()
-            playbackQueueViewModel.playing.postValue(false)
             mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
                 setActions(PLAYBACK_ACTION)
                 setState(
@@ -269,7 +266,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                 1F
             )
         }.build())
-        playbackQueueViewModel.nextSong()
+        playbackQueueViewModel.emit(PlaybackEvent.SKIP_NEXT_SONG)
     }
 
     fun skipToPrevious() {
@@ -281,7 +278,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                 1F
             )
         }.build())
-        playbackQueueViewModel.previousSong()
+        playbackQueueViewModel.emit(PlaybackEvent.SKIP_PREV_SONG)
     }
 
     inner class BecomingNoisyReceiver : BroadcastReceiver() {
