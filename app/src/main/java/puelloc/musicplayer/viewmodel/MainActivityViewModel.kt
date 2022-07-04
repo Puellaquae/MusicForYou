@@ -130,11 +130,10 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     val currentFABIcon: LiveData<Int?> = currentFragmentRes.switchMap { res ->
         when (res) {
             R.id.nav_music_library -> getFABIconForMusicLibrary()
-            R.id.nav_song -> playbackQueueViewModel.currentSong.map {
-                if (it == null) {
-                    null
-                } else {
-                    R.drawable.ic_baseline_music_note_24
+            R.id.nav_song -> playbackQueueViewModel.currentItemId.map {
+                when (it) {
+                    PlaybackQueueViewModel.NONE_SONG_ITEM_ID -> R.drawable.ic_baseline_play_arrow_24
+                    else -> R.drawable.ic_baseline_music_note_24
                 }
             }
             else -> liveData { emit(null) }
@@ -142,11 +141,19 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun getFABIconForMusicLibrary(): LiveData<Int?> =
-        showPlaylistId.map {
+        showPlaylistId.switchMap {
             if (it == MUSIC_LIBRARY_SHOW_PLAYLISTS) {
-                R.drawable.ic_baseline_add_24
+                liveData {
+                    emit(R.drawable.ic_baseline_add_24)
+                }
             } else {
-                R.drawable.ic_baseline_play_arrow_24
+                playlistSongsSelectionSize.map { size ->
+                    if (size != 0) {
+                        R.drawable.ic_baseline_playlist_add_24
+                    } else {
+                        R.drawable.ic_baseline_play_arrow_24
+                    }
+                }
             }
         }
 

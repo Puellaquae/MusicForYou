@@ -141,8 +141,12 @@ class PlaybackQueueFragment : Fragment(), IHandleMenuItemClick, IHandleFAB {
     }
 
     override fun onFABClick(): Boolean {
-        val miniPlayerDialog = CurrentMiniPlayerDialog()
-        miniPlayerDialog.show(parentFragmentManager, "CurrentMiniPlayerDialog")
+        if (lastPlayItemId == PlaybackQueueViewModel.NONE_SONG_ITEM_ID) {
+            playbackQueueViewModel.emit(PlaybackEvent.PLAY)
+        } else {
+            val miniPlayerDialog = CurrentMiniPlayerDialog()
+            miniPlayerDialog.show(parentFragmentManager, "CurrentMiniPlayerDialog")
+        }
         return true
     }
 }

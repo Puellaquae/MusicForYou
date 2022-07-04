@@ -27,7 +27,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
 
         private val TAG = this::class.java.declaringClass.simpleName
 
-        private const val NONE_SONG_ITEM_ID = -1L
+        const val NONE_SONG_ITEM_ID = -1L
     }
 
     private val appDatabase =
@@ -219,10 +219,8 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
             PlaybackEvent.PLAY -> {
                 _playing.postValue(true)
                 if (_currentItemId.value == null || _currentItemId.value == NONE_SONG_ITEM_ID) {
-                    Log.d(TAG, "no current playing song, next song")
                     nextSong()
                 } else {
-                    Log.d(TAG, "has current playing song")
                     _event.postValue(PlaybackEvent.PLAY)
                 }
             }

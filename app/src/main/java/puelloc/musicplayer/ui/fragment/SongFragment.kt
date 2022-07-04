@@ -151,7 +151,10 @@ class SongFragment : Fragment(), IHandleBackPress, IHandleMenuItemClick, IHandle
     }
 
     override fun onFABClick(): Boolean {
-        if (songAdapter.currentList.isNotEmpty()) {
+        if (songAdapter.hasSelection()) {
+            playbackQueueViewModel.appendSongs(songAdapter.getSelection())
+            songAdapter.clearSelection()
+        } else if (songAdapter.currentList.isNotEmpty()) {
             playbackQueueViewModel.playPlaylist(
                 songAdapter.currentList.map { it.songId },
                 songAdapter.currentList.first().songId

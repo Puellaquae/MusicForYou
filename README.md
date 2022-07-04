@@ -32,6 +32,8 @@
 - **Fine-Tuning** 使用 ConcurrentLinkedQueue 替代 CircularArray
 - **Fix** 下一首或上一首会异常跳歌，这个问题只会在长时间运行或多次切歌后触发。原因是播放下一首歌的 Prepare 时未清除定时器，而播放时又会额外添加一次定时器，定时器在 Preparing 阶段尝试获取播放进度而导致 MediaPlayer 状态错误而播放失败，直接歌曲播放结束触发跳转下一首。
 - **Fine-Tuning** 使用 SingleLiveEvent 管理播放控制事件，由 PlaybackQueueViewModel 管理播放控制细节逻辑。
+- **Feature** 播放列表页无播放歌曲时 FAB 为开始播放按钮
+- **Feature** 歌单歌曲页多选时 FAB 为添加至播放列表
 
 ## Some Ideas
 
