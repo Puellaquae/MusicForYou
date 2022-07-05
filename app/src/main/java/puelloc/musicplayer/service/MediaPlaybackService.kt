@@ -26,6 +26,7 @@ import puelloc.musicplayer.glide.audiocover.AudioCover
 import puelloc.musicplayer.utils.SongUtil.Companion.getMetadataBuilder
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MediaPlaybackService : MediaBrowserServiceCompat() {
     private lateinit var mediaSession: MediaSessionCompat
@@ -35,12 +36,14 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     private lateinit var mediaPlayer: MediaPlayer
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
     private val noisyAudioStreamReceiver = BecomingNoisyReceiver()
+    private val receiverRegistered = AtomicBoolean(false)
     private val playbackEventObserver = Observer<PlaybackEvent> {
         Log.d(TAG, "Playback action $it")
         when (it) {
             PlaybackEvent.PREPARE_FOR_NEW_SONG -> prepare()
-            PlaybackEvent.PLAY -> doPlay()
-            PlaybackEvent.PAUSE -> doPause()
+            PlaybackEvent.PLAY -> play()
+            PlaybackEvent.PAUSE -> pause()
+            PlaybackEvent.STOP -> stop()
             else -> {}
         }
     }
@@ -174,13 +177,15 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         }
     }
 
-    fun play() {
-        playbackQueueViewModel.emit(PlaybackEvent.PLAY)
+    fun emit(event: PlaybackEvent) {
+        playbackQueueViewModel.emit(event)
     }
 
-    private fun doPlay() {
+    private fun play() {
         prepareSong?.let {
-            registerReceiver(noisyAudioStreamReceiver, intentFilter)
+            if (receiverRegistered.compareAndSet(false, true)) {
+                registerReceiver(noisyAudioStreamReceiver, intentFilter)
+            }
             mediaPlayer.start()
             timer = Timer()
             timer.scheduleAtFixedRate(object : TimerTask() {
@@ -200,13 +205,15 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
         }
     }
 
-    fun stop() {
+    private fun stop() {
         prepareSong?.let { mediaNotificationManager.updatePlay(false) }
         prepareSong = null
         mediaPlayer.stop()
         timer.cancel()
         timer.purge()
-        unregisterReceiver(noisyAudioStreamReceiver)
+        if (receiverRegistered.compareAndSet(true, false)) {
+            unregisterReceiver(noisyAudioStreamReceiver)
+        }
         mediaSession.setPlaybackState(PlaybackStateCompat.Builder().apply {
             setActions(PLAYBACK_ACTION)
             setState(
@@ -216,15 +223,10 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
             )
         }.build())
         mediaNotificationManager.stop()
-        playbackQueueViewModel.emit(PlaybackEvent.STOP)
         stopSelf()
     }
 
-    fun pause() {
-        playbackQueueViewModel.emit(PlaybackEvent.PAUSE)
-    }
-
-    private fun doPause() {
+    private fun pause() {
         if (mediaPlayer.isPlaying) {
             mediaPlayer.pause()
             timer.cancel()

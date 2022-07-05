@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreference
+        android:defaultValue="true"
+        android:icon="@drawable/ic_baseline_repeat_24"
+        android:key="infinity_play_queue"
+        android:title="Repeat Playback Queue" />
+    <SwitchPreference
+        android:enabled="false"
+        android:defaultValue="false"
+        android:icon="@drawable/ic_baseline_shuffle_24"
+        android:key="random_play_queue"
+        android:title="Random Next Song" />
+    <SeekBarPreference
+        android:enabled="false"
+        android:icon="@drawable/ic_baseline_snooze_24"
+        android:defaultValue="0"
+        android:max="90"
+        android:key="sleep_clock"
+        app:showSeekBarValue="true"
+        android:title="Sleep Clock (Minutes)" />
+</PreferenceScreen>

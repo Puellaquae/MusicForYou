@@ -34,6 +34,8 @@
 - **Fine-Tuning** 使用 SingleLiveEvent 管理播放控制事件，由 PlaybackQueueViewModel 管理播放控制细节逻辑。
 - **Feature** 播放列表页无播放歌曲时 FAB 为开始播放按钮
 - **Feature** 歌单歌曲页多选时 FAB 为添加至播放列表
+- **Feature** 添加播放列表循环播放设置
+- **Feature** 播放列表播放结束后播放控制页自动消失
 
 ## Some Ideas
 

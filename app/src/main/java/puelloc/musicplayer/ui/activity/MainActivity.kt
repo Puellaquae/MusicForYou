@@ -35,6 +35,7 @@ import puelloc.musicplayer.trait.IHandleNavigationReselect
 import puelloc.musicplayer.ui.fragment.ForYouFragment
 import puelloc.musicplayer.ui.fragment.MusicLibraryFragment
 import puelloc.musicplayer.ui.fragment.PlaybackQueueFragment
+import puelloc.musicplayer.ui.fragment.SettingFragment
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
@@ -51,7 +52,7 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
         private val TAG = MainActivity::class.java.simpleName
 
         val FRAGMENTS = listOf(
-            { ForYouFragment() } to R.id.nav_for_you,
+            { SettingFragment() } to R.id.nav_for_you,
             { PlaybackQueueFragment() } to R.id.nav_song,
             { MusicLibraryFragment() } to R.id.nav_music_library,
         )

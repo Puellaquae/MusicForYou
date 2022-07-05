@@ -32,10 +32,12 @@ class CurrentMiniPlayerDialog : DialogFragment() {
         binding = FragmentMiniPlayerBinding.inflate(requireActivity().layoutInflater)
         playbackQueueViewModel =
             PlaybackQueueViewModel.getInstance(requireContext().applicationContext as Application)
-        playbackQueueViewModel.currentSong.observe(this) { song ->
-            if (song == null) {
-                return@observe
+        playbackQueueViewModel.currentItemId.observe(this) {
+            if (it == PlaybackQueueViewModel.NONE_SONG_ITEM_ID) {
+                dismiss()
             }
+        }
+        playbackQueueViewModel.currentSong.observe(this) { song ->
             binding.apply {
                 itemTitle.text = song.name
                 itemSubtitle.text = song.albumName

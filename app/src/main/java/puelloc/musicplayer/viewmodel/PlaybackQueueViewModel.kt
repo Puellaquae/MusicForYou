@@ -1,8 +1,10 @@
 package puelloc.musicplayer.viewmodel
 
 import android.app.Application
+import android.content.SharedPreferences
 import android.util.Log
 import androidx.lifecycle.*
+import androidx.preference.PreferenceManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,6 +39,12 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
 
     val playbackQueueWithSong = playbackQueueDao.getPlaybackQueue()
 
+    private val settings: SharedPreferences?
+        get() {
+            val context = getApplication<Application?>().applicationContext
+            return PreferenceManager.getDefaultSharedPreferences(context)
+        }
+
     fun appendSongs(songIds: List<Long>) {
         viewModelScope.launch(Dispatchers.IO) {
             needAutoSave.postValue(true)
@@ -61,7 +69,12 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                     Log.d(TAG, "curOrder: $currentOrder, nextOrder: ${next?.order}")
                     // no next song
                     if (next == null) {
-                        firstSong()
+                        if (settings?.getBoolean("infinity_play_queue", true) == true) {
+                            firstSong()
+                        } else {
+                            _currentItemId.postValue(NONE_SONG_ITEM_ID)
+                            _event.postValue(PlaybackEvent.STOP)
+                        }
                     } else {
                         _currentItemId.postValue(next.itemId!!)
                     }
@@ -231,6 +244,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
             PlaybackEvent.STOP -> {
                 _playing.postValue(false)
                 _currentItemId.postValue(NONE_SONG_ITEM_ID)
+                _event.postValue(PlaybackEvent.STOP)
             }
             PlaybackEvent.PLAY_PAUSE -> {
                 if (_playing.value == true) {

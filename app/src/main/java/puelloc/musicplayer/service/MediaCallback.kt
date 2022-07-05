@@ -3,6 +3,7 @@ package puelloc.musicplayer.service
 import android.content.Intent
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
+import puelloc.musicplayer.enums.PlaybackEvent
 
 class MediaCallback(private val mediaPlaybackService: MediaPlaybackService) : MediaSessionCompat.Callback() {
     companion object {
@@ -11,19 +12,19 @@ class MediaCallback(private val mediaPlaybackService: MediaPlaybackService) : Me
 
     override fun onPlay() {
         super.onPlay()
-        mediaPlaybackService.play()
+        mediaPlaybackService.emit(PlaybackEvent.PLAY)
         Log.d(TAG, "Play")
     }
 
     override fun onPause() {
         super.onPause()
-        mediaPlaybackService.pause()
+        mediaPlaybackService.emit(PlaybackEvent.PAUSE)
         Log.d(TAG, "Pause")
     }
 
     override fun onStop() {
         super.onStop()
-        mediaPlaybackService.stop()
+        mediaPlaybackService.emit(PlaybackEvent.STOP)
         Log.d(TAG, "Stop")
     }
 
