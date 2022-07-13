@@ -76,7 +76,14 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                             _event.postValue(PlaybackEvent.STOP)
                         }
                     } else {
-                        _currentItemId.postValue(next.itemId!!)
+                        if (settings?.getBoolean("play_queue_once", false) == true
+                            && next.itemId!! == _beginSongId
+                        ) {
+                            _currentItemId.postValue(NONE_SONG_ITEM_ID)
+                            _event.postValue(PlaybackEvent.STOP)
+                        } else {
+                            _currentItemId.postValue(next.itemId!!)
+                        }
                     }
                 }
             }
@@ -148,15 +155,6 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    private fun playSongIdSync(songId: Long) {
-        val item = playbackQueueDao.getPlaybackQueueSync().firstOrNull {
-            it.song.songId == songId
-        }
-        if (item != null) {
-            _currentItemId.postValue(item.queueItem.itemId)
-        }
-    }
-
     /**
      * will be changed in [deleteItemId], [moveItemAndInsert] and [appendSongs]
      * reset in [playPlaylist], [clearQueue]
@@ -176,7 +174,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
             }
             playbackQueueDao.append(songIds)
             needAutoSave.postValue(false)
-            playSongIdSync(songId)
+            emit(PlaybackEvent.CHOOSE_SONG_AND_PLAY, songId)
         }
     }
 
@@ -226,6 +224,8 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
 
     val playing: LiveData<Boolean> = _playing
 
+    private var _beginSongId = NONE_SONG_ITEM_ID
+
     fun emit(event: PlaybackEvent, arg: Any? = null) {
         Log.d(TAG, "emit $event $arg")
         when (event) {
@@ -270,6 +270,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
             PlaybackEvent.CHOOSE_SONG_AND_PLAY -> {
                 if (arg != null && arg is Long) {
                     _playing.postValue(true)
+                    _beginSongId = arg
                     _currentItemId.postValue(arg)
                 }
             }

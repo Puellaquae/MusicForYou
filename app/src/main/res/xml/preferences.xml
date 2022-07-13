@@ -6,7 +6,14 @@
         android:defaultValue="true"
         android:icon="@drawable/ic_baseline_repeat_24"
         android:key="infinity_play_queue"
-        android:title="Repeat Playback Queue" />
+        android:title="Repeat Playback Queue"
+        android:summary="On non-random next song, next song of last song is first song if switch on."/>
+    <SwitchPreference
+        android:defaultValue="false"
+        android:icon="@drawable/ic_baseline_repeat_one_24"
+        android:key="play_queue_once"
+        android:title="Playback Queue Once"
+        android:summary="When all of song has been played once, stop playing. Re-record when event CHOOSE_SONG_AND_PLAY. Only support on non-random next song now." />
     <SwitchPreference
         android:enabled="false"
         android:defaultValue="false"
