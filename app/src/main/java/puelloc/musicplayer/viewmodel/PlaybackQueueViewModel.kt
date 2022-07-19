@@ -12,6 +12,7 @@ import puelloc.musicplayer.db.AppDatabase
 import puelloc.musicplayer.entity.PlaybackQueueItem
 import puelloc.musicplayer.entity.Playlist
 import puelloc.musicplayer.entity.PlaylistSongCrossRef
+import puelloc.musicplayer.enums.AppEvent
 import puelloc.musicplayer.enums.PlaybackEvent
 import puelloc.musicplayer.utils.SingleLiveEvent
 
@@ -77,7 +78,7 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                         }
                     } else {
                         if (settings?.getBoolean("play_queue_once", false) == true
-                            && next.itemId!! == _beginSongId
+                            && next.itemId!! == _beginSongItemId.value
                         ) {
                             _currentItemId.postValue(NONE_SONG_ITEM_ID)
                             _event.postValue(PlaybackEvent.STOP)
@@ -190,6 +191,9 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                 val song = playbackQueueDao.getSongSync(id)
                 if (song != null) {
                     emit(song.song)
+                    if (waitBeginRecord) {
+                        _beginSongItemId.postValue(id)
+                    }
                     _event.postValue(PlaybackEvent.PREPARE_FOR_NEW_SONG)
                 }
             }
@@ -224,7 +228,28 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
 
     val playing: LiveData<Boolean> = _playing
 
-    private var _beginSongId = NONE_SONG_ITEM_ID
+    private var _beginSongItemId = MutableLiveData<Long>().apply {
+        postValue(NONE_SONG_ITEM_ID)
+    }
+
+    private var waitBeginRecord = false
+
+    val playOnceSongName: LiveData<String?> = _beginSongItemId.switchMap {
+        if (it == NONE_SONG_ITEM_ID) {
+            liveData {
+                emit(null)
+            }
+        } else {
+            liveData {
+                withContext(Dispatchers.IO) {
+                    val song = playbackQueueDao.getSongSync(it)
+                    if (song != null) {
+                        emit(song.song.name)
+                    }
+                }
+            }
+        }
+    }
 
     fun emit(event: PlaybackEvent, arg: Any? = null) {
         Log.d(TAG, "emit $event $arg")
@@ -270,12 +295,26 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
             PlaybackEvent.CHOOSE_SONG_AND_PLAY -> {
                 if (arg != null && arg is Long) {
                     _playing.postValue(true)
-                    _beginSongId = arg
                     _currentItemId.postValue(arg)
                 }
             }
             PlaybackEvent.PREPARE_FOR_NEW_SONG -> {
 
+            }
+        }
+    }
+
+    fun emit(event: AppEvent) {
+        Log.d(TAG, "emit $event")
+        when (event) {
+            AppEvent.PLAY_ONCE_BEGIN_RECORD -> {
+                Log.d(TAG, "emit $event on ${_currentItemId.value}")
+                if (_currentItemId.value == NONE_SONG_ITEM_ID) {
+                    waitBeginRecord = true
+                } else {
+                    _beginSongItemId.postValue(_currentItemId.value)
+                    waitBeginRecord = false
+                }
             }
         }
     }

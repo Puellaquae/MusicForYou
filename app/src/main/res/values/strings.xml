@@ -53,4 +53,10 @@
     <string name="song" translatable="false">Song</string>
     <string name="music_library" translatable="false">Music</string>
     <string name="song_time" translatable="false">%d:%02d</string>
+    <string name="infinity_play_queue">Repeat Playback Queue</string>
+    <string name="play_queue_once">Playback Queue Once</string>
+    <string name="infinity_play_queue_summary">On non-random next song, next song of last song is first song if switch on.</string>
+    <string name="play_queue_once_summary_off">When all of song has been played once, stop playing. Switch on to record (instead playing song). Only support on non-random next song now.</string>
+    <string name="play_queue_once_summary_on">When all of song has been played once, stop playing. Stop before song %s. Only support on non-random next song now.</string>
+    <string name="play_queue_once_summary_on_wait">When all of song has been played once, stop playing. Wait for play song. Only support on non-random next song now.</string>
 </resources>

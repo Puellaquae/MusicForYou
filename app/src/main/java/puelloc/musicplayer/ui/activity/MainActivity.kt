@@ -1,6 +1,7 @@
 package puelloc.musicplayer.ui.activity
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
@@ -18,6 +19,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.WindowCompat
 import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.navigation.NavigationBarView
@@ -26,6 +28,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import puelloc.musicplayer.R
 import puelloc.musicplayer.databinding.ActivityMainBinding
+import puelloc.musicplayer.enums.AppEvent
 import puelloc.musicplayer.service.MediaPlaybackService
 import puelloc.musicplayer.service.MediaServiceHelper
 import puelloc.musicplayer.trait.IHandleBackPress
@@ -37,16 +40,18 @@ import puelloc.musicplayer.ui.fragment.MusicLibraryFragment
 import puelloc.musicplayer.ui.fragment.PlaybackQueueFragment
 import puelloc.musicplayer.ui.fragment.SettingFragment
 import puelloc.musicplayer.viewmodel.MainActivityViewModel
+import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import puelloc.musicplayer.viewmodel.PlaylistViewModel
 import puelloc.musicplayer.viewmodel.SongViewModel
 
 class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
-    IHandleNavigationReselect {
+    IHandleNavigationReselect, SharedPreferences.OnSharedPreferenceChangeListener {
     private lateinit var binding: ActivityMainBinding
     private lateinit var mediaServiceHelper: MediaServiceHelper
     private val songViewModel: SongViewModel by viewModels()
     private val playlistViewModel: PlaylistViewModel by viewModels()
     private val mainActivityViewModel: MainActivityViewModel by viewModels()
+    private lateinit var playbackQueueViewModel: PlaybackQueueViewModel
 
     companion object {
         private val TAG = MainActivity::class.java.simpleName
@@ -80,6 +85,8 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        playbackQueueViewModel = PlaybackQueueViewModel.getInstance(this.application)
 
         initView()
 
@@ -119,6 +126,9 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
         }
         mediaServiceHelper.create()
         mediaServiceHelper.registerCallback(controllerCallback)
+
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this)
     }
 
     override fun onStart() {
@@ -131,6 +141,14 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
         super.onResume()
         Log.d(TAG, "onResume")
         volumeControlStream = AudioManager.STREAM_MUSIC
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
     }
 
     override fun onStop() {
@@ -271,7 +289,6 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
         super.onBackPressed()
     }
 
-
     override fun onMenuItemClicked(menuItem: MenuItem): Boolean {
         val currentFragment = getCurrentFragment()
         if (currentFragment is IHandleMenuItemClick &&
@@ -304,4 +321,13 @@ class MainActivity : AppCompatActivity(), IHandleMenuItemClick, IHandleFAB,
 
     private fun getCurrentFragment() =
         supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
+
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (key == "play_queue_once") {
+            val once = sharedPreferences?.getBoolean(key, false)
+            if (once == true) {
+                playbackQueueViewModel.emit(AppEvent.PLAY_ONCE_BEGIN_RECORD)
+            }
+        }
+    }
 }

@@ -50,4 +50,10 @@
     <string name="bluetooth_listen">音频接收</string>
     <string name="media_playback_service">音乐播放服务</string>
     <string name="host_apdu_service">NFC卡模拟服务</string>
+    <string name="infinity_play_queue">列表循环</string>
+    <string name="play_queue_once">仅播放一次</string>
+    <string name="infinity_play_queue_summary">在顺序播放下，播完最后一首后继续播放第一首。</string>
+    <string name="play_queue_once_summary_off">在所有歌曲都播放一次后结束播放，点按以开始记录（会包括当前播放歌曲）。目前仅支持顺序播放。</string>
+    <string name="play_queue_once_summary_on">在所有歌曲都播放一次后结束播放，%s前结束播放。目前仅支持顺序播放。</string>
+    <string name="play_queue_once_summary_on_wait">在所有歌曲都播放一次后结束播放，播放歌曲以开始记录。目前仅支持顺序播放。</string>
 </resources>
