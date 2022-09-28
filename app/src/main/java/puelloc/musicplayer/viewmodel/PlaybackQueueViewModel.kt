@@ -73,15 +73,13 @@ class PlaybackQueueViewModel(application: Application) : AndroidViewModel(applic
                         if (settings?.getBoolean("infinity_play_queue", true) == true) {
                             firstSong()
                         } else {
-                            _currentItemId.postValue(NONE_SONG_ITEM_ID)
-                            _event.postValue(PlaybackEvent.STOP)
+                            emit(PlaybackEvent.STOP)
                         }
                     } else {
                         if (settings?.getBoolean("play_queue_once", false) == true
                             && next.itemId!! == _beginSongItemId.value
                         ) {
-                            _currentItemId.postValue(NONE_SONG_ITEM_ID)
-                            _event.postValue(PlaybackEvent.STOP)
+                            emit(PlaybackEvent.STOP)
                         } else {
                             _currentItemId.postValue(next.itemId!!)
                         }

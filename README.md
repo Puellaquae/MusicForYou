@@ -17,6 +17,7 @@
 
 ## DONE
 
+- **Fix** 播放列表结束停止后，再次进入回重新触发播放（此时不知为何会再次收到 STOP 事件，导致 Player 触发播放完成事件并进而触发播放下一首事件）
 - **Fine-Tuning** 将 DAO 的 Flow 改为 LiveData
 - **Feature** 为播放队列添加显示当前播放歌曲的功能
 - **Fine-Tuning** 将 SelectableItemAdapter 改为继承自 ItemAdapter

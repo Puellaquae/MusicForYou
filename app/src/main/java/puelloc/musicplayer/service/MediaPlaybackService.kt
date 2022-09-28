@@ -27,6 +27,7 @@ import puelloc.musicplayer.utils.SongUtil.Companion.getMetadataBuilder
 import puelloc.musicplayer.viewmodel.PlaybackQueueViewModel
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 class MediaPlaybackService : MediaBrowserServiceCompat() {
     private lateinit var mediaSession: MediaSessionCompat
@@ -37,6 +38,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
     private val noisyAudioStreamReceiver = BecomingNoisyReceiver()
     private val receiverRegistered = AtomicBoolean(false)
+    private val currentState = AtomicInteger(STATE_STOP)
     private val playbackEventObserver = Observer<PlaybackEvent> {
         Log.d(TAG, "Playback action $it")
         when (it) {
@@ -63,6 +65,9 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
                 PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
                 PlaybackStateCompat.ACTION_SEEK_TO
+        private const val STATE_STOP = 0
+        private const val STATE_PLAY = 1
+        private const val STATE_PAUSE = 2
     }
 
     override fun onGetRoot(
@@ -182,6 +187,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     }
 
     private fun play() {
+        currentState.set(STATE_PLAY)
         prepareSong?.let {
             if (receiverRegistered.compareAndSet(false, true)) {
                 registerReceiver(noisyAudioStreamReceiver, intentFilter)
@@ -206,6 +212,10 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     }
 
     private fun stop() {
+        if (currentState.compareAndSet(STATE_STOP, STATE_STOP)) {
+            return
+        }
+        currentState.set(STATE_STOP)
         prepareSong?.let { mediaNotificationManager.updatePlay(false) }
         prepareSong = null
         mediaPlayer.stop()
@@ -227,6 +237,7 @@ class MediaPlaybackService : MediaBrowserServiceCompat() {
     }
 
     private fun pause() {
+        currentState.set(STATE_PAUSE)
         if (mediaPlayer.isPlaying) {
             mediaPlayer.pause()
             timer.cancel()
