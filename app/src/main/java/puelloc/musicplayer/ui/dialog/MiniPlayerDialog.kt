@@ -72,28 +72,31 @@ class MiniPlayerDialog(private val song: Song) : DialogFragment() {
             }
             val aSec = (song.duration / 1000) % 60
             val aMin = (song.duration / 1000) / 60
+            timeNow.text = getString(R.string.song_time, 0, 0)
             timeAll.text = getString(R.string.song_time, aMin, aSec)
             seekBar.max = song.duration.toInt()
 
-            val mediaExtractor = MediaExtractor()
-            songInfo.text = try {
-                mediaExtractor.setDataSource(song.path)
-                val format = mediaExtractor.getTrackFormat(0)
-                val bitRate = if (format.containsKey(MediaFormat.KEY_BIT_RATE)) {
-                    format.getInteger(MediaFormat.KEY_BIT_RATE)
-                } else {
-                    val m = MediaMetadataRetriever()
-                    m.setDataSource(song.path)
-                    Integer.valueOf(
-                        m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE) ?: "0"
-                    )
+            songInfo.text = ""
+            songInfo.post {
+                val mediaExtractor = MediaExtractor()
+                songInfo.text = try {
+                    mediaExtractor.setDataSource(song.path)
+                    val format = mediaExtractor.getTrackFormat(0)
+                    val bitRate = if (format.containsKey(MediaFormat.KEY_BIT_RATE)) {
+                        format.getInteger(MediaFormat.KEY_BIT_RATE)
+                    } else {
+                        val m = MediaMetadataRetriever()
+                        m.setDataSource(song.path)
+                        Integer.valueOf(
+                            m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE) ?: "0"
+                        )
+                    }
+                    val sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                    "${bitRate / 1000} kbps • ${sampleRate.toDouble() / 1000.0} kHz"
+                } catch (e: IOException) {
+                    ""
                 }
-                val sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-                "${bitRate / 1000} kbps • ${sampleRate.toDouble() / 1000.0} kHz"
-            } catch (e: IOException) {
-                ""
             }
-
             var seekBarProcess = 0
 
             seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

@@ -48,24 +48,26 @@ class CurrentMiniPlayerDialog : DialogFragment() {
                 val aMin = (song.duration / 1000) / 60
                 timeAll.text = getString(R.string.song_time, aMin, aSec)
                 seekBar.max = song.duration.toInt()
-
-                songInfo.text = try {
+                songInfo.text = ""
+                songInfo.post {
                     val mediaExtractor = MediaExtractor()
-                    mediaExtractor.setDataSource(song.path)
-                    val format = mediaExtractor.getTrackFormat(0)
-                    val bitRate = if (format.containsKey(MediaFormat.KEY_BIT_RATE)) {
-                        format.getInteger(MediaFormat.KEY_BIT_RATE)
-                    } else {
-                        val m = MediaMetadataRetriever()
-                        m.setDataSource(song.path)
-                        Integer.valueOf(
-                            m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE) ?: "0"
-                        )
+                    songInfo.text = try {
+                        mediaExtractor.setDataSource(song.path)
+                        val format = mediaExtractor.getTrackFormat(0)
+                        val bitRate = if (format.containsKey(MediaFormat.KEY_BIT_RATE)) {
+                            format.getInteger(MediaFormat.KEY_BIT_RATE)
+                        } else {
+                            val m = MediaMetadataRetriever()
+                            m.setDataSource(song.path)
+                            Integer.valueOf(
+                                m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE) ?: "0"
+                            )
+                        }
+                        val sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                        "${bitRate / 1000} kbps • ${sampleRate.toDouble() / 1000.0} kHz"
+                    } catch (e: IOException) {
+                        ""
                     }
-                    val sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-                    "${bitRate / 1000} kbps • ${sampleRate.toDouble() / 1000.0} kHz"
-                } catch (e: IOException) {
-                    ""
                 }
 
                 Glide
